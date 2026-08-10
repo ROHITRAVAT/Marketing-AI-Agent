@@ -1,0 +1,24 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Secrets
+.env
+
+# Git
+.git/
+.gitignore
+
+# Node.js / frontend build outputs (source is in frontend/ and IS needed in
+# the frontend image, but installed deps and build artifacts are not)
+node_modules/
+dist/
+
+# Other project folders not needed at runtime
+docs/
+
+# Editors & OS
+.vscode/
+.DS_Store
+*.log
