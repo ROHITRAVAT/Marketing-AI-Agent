@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI):
         )
     except Exception as exc:  # pragma: no cover - operational fallback
         # Fail gracefully: the API still starts and /health reports degraded status.
-        logger.warning("Qdrant unavailable at startup, collection init skipped: %s", exc)
+        logger.info("Qdrant unavailable at startup, collection init skipped: %s", exc)
     yield
     await engine.dispose()
     await close_qdrant_client()

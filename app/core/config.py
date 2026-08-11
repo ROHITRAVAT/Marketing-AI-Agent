@@ -4,8 +4,8 @@ import os
 # Load variables from .env
 load_dotenv()
 
-APP_NAME = os.getenv("APP_NAME")
-APP_VERSION = os.getenv("APP_VERSION")
+APP_NAME = os.getenv("APP_NAME") or "Marketing AI Agent"
+APP_VERSION = os.getenv("APP_VERSION") or "1.0.0"
 DEBUG = os.getenv("DEBUG")
 
 # Comma-separated list of allowed CORS origins

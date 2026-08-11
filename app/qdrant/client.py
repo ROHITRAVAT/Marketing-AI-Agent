@@ -28,6 +28,7 @@ def build_async_client() -> AsyncQdrantClient:
         url=QDRANT_URL,
         api_key=(QDRANT_API_KEY or None),
         timeout=QDRANT_TIMEOUT,
+        check_compatibility=False,
     )
 
 
