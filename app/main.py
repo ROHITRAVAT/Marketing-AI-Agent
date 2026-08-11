@@ -21,8 +21,6 @@ from app.qdrant.client import close_async_client as close_qdrant_client
 from app.qdrant.service import ensure_qdrant_collections
 
 logger = logging.getLogger(__name__)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: setup on startup, cleanup on shutdown."""
