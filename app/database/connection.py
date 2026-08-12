@@ -1,21 +1,16 @@
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core.config import DATABASE_URL, DB_ECHO
-
-
-def create_db_engine() -> AsyncEngine:
-    """Create the asynchronous SQLAlchemy engine.
-
-    Uses a NullPool-free default pool with sensible production defaults:
-    pool_size and max_overflow are tuned for asyncpg connections.
-    """
-    return create_async_engine(
-        DATABASE_URL,
-        echo=DB_ECHO,
-        pool_size=5,
-        max_overflow=10,
-        pool_pre_ping=True,
-    )
+from app.config.settings import settings
 
 
-engine: AsyncEngine = create_db_engine()
+engine = create_async_engine(
+    settings.database_url,
+    echo=False,
+)
+
+
+AsyncSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)

@@ -17,3 +17,5 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Yield a database session and always close it afterwards."""
     async with SessionLocal() as session:
         yield session
+
+
