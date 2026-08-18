@@ -14,7 +14,6 @@ from app.middleware.error_handlers import (
     unhandled_exception_handler,
 )
 from app.api.router import api_router
-from app.routers.router import api_router
 from app.api.routes.home import router as home_router
 from app.database.connection import engine
 from app.ollama.client import close_async_client as close_ollama_client
@@ -49,9 +48,6 @@ app = FastAPI(
     version=APP_VERSION,
     lifespan=lifespan,
 )
-
-#Take all endpoints defined inside api_router and add them to this FastAPI application.
-app.include_router(api_router)
 
 # CORS
 app.add_middleware(

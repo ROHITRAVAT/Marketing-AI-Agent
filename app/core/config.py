@@ -8,6 +8,18 @@ APP_NAME = os.getenv("APP_NAME") or "Marketing AI Agent"
 APP_VERSION = os.getenv("APP_VERSION") or "1.0.0"
 DEBUG = os.getenv("DEBUG")
 
+# JWT authentication configuration
+# Secret key must be provided through environment variables.
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+
+# JWT signing algorithm
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+# Access token lifetime in minutes
+ACCESS_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+)
+
 # Comma-separated list of allowed CORS origins
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
