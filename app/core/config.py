@@ -20,6 +20,11 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 )
 
+# Password reset token lifetime in minutes.
+PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = int(
+    os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "30")
+)
+
 # Comma-separated list of allowed CORS origins
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
 
@@ -70,3 +75,23 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "")
 
 # Timeout (seconds) for Ollama HTTP operations (health checks, model listing).
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
+
+# Email / SMTP configuration
+SMTP_HOST = os.getenv("SMTP_HOST")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USERNAME = os.getenv("SMTP_USERNAME")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
+SMTP_FROM_EMAIL = os.getenv(
+    "SMTP_FROM_EMAIL",
+    "no-reply@example.com",
+)
+SMTP_FROM_NAME = os.getenv(
+    "SMTP_FROM_NAME",
+    "Marketing AI Agent",
+)
+
+# Frontend URL used when generating password-reset links.
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+)

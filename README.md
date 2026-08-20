@@ -275,12 +275,12 @@ the container filesystem — the volume survives container recreation.
 | Item | Value |
 |---|---|
 | Image | `ollama/ollama:latest` |
-| Port | `11434:11434` (published for host access) |
+| Port | `127.0.0.1:11434:11434` (published for local host access only) |
 | Restart policy | `unless-stopped` |
 | Volume | `ollama_models` → `/root/.ollama` |
 | Network | `app-network` (shared bridge) |
 | Container env | `OLLAMA_HOST=0.0.0.0` (container bind address) |
-| Healthcheck | `curl -f http://localhost:11434/api/tags` |
+| Healthcheck | `ollama list` (uses the bundled CLI to verify the local API) |
 
 > **Note on `OLLAMA_HOST`:** inside the Ollama *container*, `OLLAMA_HOST` is
 > set to `0.0.0.0` so the server is reachable from the host and from other
@@ -301,7 +301,7 @@ docker compose ps ollama
 
 ### Verify Ollama Connectivity
 
-From the host (port 11434 is published):
+From the host (port 11434 is published only on loopback):
 
 ```bash
 curl http://localhost:11434/api/tags

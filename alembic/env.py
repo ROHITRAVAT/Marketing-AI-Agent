@@ -9,7 +9,14 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from app.core.config import DATABASE_URL
 from app.database.base import Base
 
-from app.models import agent_log, campaign, prompt, scheduled_post, user
+from app.models import (
+    agent_log,
+    campaign,
+    password_reset_token,
+    prompt,
+    scheduled_post,
+    user,
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

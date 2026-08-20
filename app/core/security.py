@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
+import secrets
 
 import jwt
 from pwdlib import PasswordHash
@@ -24,6 +26,19 @@ def verify_password(password: str, hashed_password: str) -> bool:
     """Verify a plain-text password against an Argon2 hash."""
 
     return password_hash.verify(password, hashed_password)
+
+def generate_password_reset_token() -> str:
+    """Generate a cryptographically secure password reset token."""
+
+    return secrets.token_urlsafe(32)
+
+
+def hash_password_reset_token(token: str) -> str:
+    """Hash a password reset token using SHA-256."""
+
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
 
 
 def create_access_token(

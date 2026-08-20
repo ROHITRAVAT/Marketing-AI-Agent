@@ -53,3 +53,27 @@ class TokenPayload(BaseModel):
     sub: str
     role: str
     exp: datetime
+
+class ForgotPasswordRequest(BaseModel):
+    """Request to start the password reset flow."""
+
+    email: EmailStr
+
+
+class ForgotPasswordResponse(BaseModel):
+    """Response for a password reset request."""
+
+    message: str
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request to reset a password using a reset token."""
+
+    token: str
+    new_password: str = Field(min_length=8, max_length=128)
+
+
+class ResetPasswordResponse(BaseModel):
+    """Response after successfully resetting a password."""
+
+    message: str

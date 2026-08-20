@@ -2,11 +2,12 @@
 with SQLAlchemy metadata when modules import `app.models`.
 """
 
-from .user import User  # noqa: F401
-from .campaign import Campaign  # noqa: F401
-from .prompt import Prompt  # noqa: F401
-from .agent_log import AgentLog  # noqa: F401
-from .scheduled_post import ScheduledPost  # noqa: F401
+from .user import User  
+from .campaign import Campaign  
+from .prompt import Prompt  
+from .agent_log import AgentLog  
+from .scheduled_post import ScheduledPost  
+from .password_reset_token import PasswordResetToken
 
 __all__ = [
 	"User",
@@ -14,4 +15,5 @@ __all__ = [
 	"Prompt",
 	"AgentLog",
 	"ScheduledPost",
+    "PasswordResetToken",
 ]
