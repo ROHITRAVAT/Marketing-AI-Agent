@@ -1,29 +1,71 @@
 import logging
 
 from fastapi import Request, HTTPException
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from fastapi.encoders import jsonable_encoder
+
+from app.schemas.common import ErrorResponse
+from app.core.request_context import get_request_id
 
 logger = logging.getLogger(__name__)
 
-
-async def http_exception_handler(request: Request, exc: HTTPException):
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+):
     """Handle FastAPI HTTP exceptions (404, 401, etc.) with clean JSON."""
+    request_id = get_request_id()
+
+    logger.warning(
+        "request_id=%s | HTTP error %s %s - status=%s detail=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        exc.status_code,
+        exc.detail,
+    )
+
+    error_response = ErrorResponse(
+        success=False,
+        message=str(exc.detail),
+        error_code=f"HTTP_{exc.status_code}",
+        request_id=request_id,
+    )
+
     return JSONResponse(
         status_code=exc.status_code,
-        content={"detail": exc.detail},
+        content=error_response.model_dump(),
     )
 
-
-from fastapi.encoders import jsonable_encoder
-
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
     """Handle request validation errors with a clean 422 JSON response."""
+    request_id = get_request_id()
+
+    logger.warning(
+        "request_id=%s | Validation error %s %s - errors=%s",
+        request_id,
+        request.method,
+        request.url.path,
+        exc.errors(),
+    )
+
+    error_response = ErrorResponse(
+        success=False,
+        message="Request validation failed",
+        error_code="VALIDATION_ERROR",
+        details=jsonable_encoder(exc.errors()),
+        request_id=request_id,
+    )
+
     return JSONResponse(
         status_code=422,
-        content={"detail": jsonable_encoder(exc.errors())},
+        content=error_response.model_dump(),
     )
-
 
 async def unhandled_exception_handler(request: Request, exc: Exception):
     """Catch-all handler for unexpected errors.
@@ -31,8 +73,23 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     Logs the full error for debugging but returns a generic message to the
     client so internal details are never leaked.
     """
-    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    request_id = get_request_id()
+    
+    logger.exception(
+        "request_id=%s | Unhandled error on %s %s", 
+        request_id, 
+        request.method, 
+        request.url.path
+    )
+
+    error_response = ErrorResponse(
+        success=False,
+        message="Internal server error",
+        error_code="INTERNAL_SERVER_ERROR",
+        request_id=request_id,
+    )
+
     return JSONResponse(
         status_code=500,
-        content={"detail": "Internal server error"},
-    )
+        content=error_response.model_dump(),
+    )

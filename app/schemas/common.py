@@ -18,3 +18,5 @@ class ErrorResponse(BaseResponse):
     """Standard error response with optional machine-readable error code."""
 
     error_code: str | None = None
+    details: list | None = None
+    request_id: str | None = None

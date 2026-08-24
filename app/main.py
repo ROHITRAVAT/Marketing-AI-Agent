@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import APP_NAME, APP_VERSION, ALLOWED_ORIGINS, LOG_LEVEL
@@ -62,7 +63,10 @@ app.add_middleware(
 app.add_middleware(RequestLoggingMiddleware)
 
 # Global exception handlers
-app.add_exception_handler(HTTPException, http_exception_handler)
+app.add_exception_handler(
+    StarletteHTTPException,
+    http_exception_handler,
+)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
