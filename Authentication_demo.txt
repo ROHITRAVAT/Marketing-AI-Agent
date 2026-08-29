@@ -1,0 +1,45 @@
+
+Authentication
+
+Step 1 — Start your FastAPI application
+.\.venv\Scripts\Activate.ps1
+uvicorn app.main:app --reload
+
+Step 2 — Check that the application is alive
+curl.exe -i http://127.0.0.1:8000/
+
+Step 3 — Test User Registration
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/register" -H "Content-Type: application/json" --data-binary "@register.json"
+
+Step 4 — Verify duplicate registration
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/register" -H "Content-Type: application/json" --data-binary "@register.json"
+
+Step 5 — Test Login with the correct password
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/login" -H "Content-Type: application/json" --data-binary "@login.json"
+
+Step 6 — Test Login with the wrong password
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/login" -H "Content-Type: application/json" --data-binary "@login.json"
+
+Step 7 — Test Login with a non-existent user
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/login" -H "Content-Type: application/json" --data-binary "@login.json"
+
+Step 8 — Test a Protected API WITHOUT a token
+curl.exe -i "http://127.0.0.1:8000/api/v1/auth-test/protected"
+
+Step 9 — Access the Protected API WITH the JWT
+curl.exe -i "http://127.0.0.1:8000/api/v1/auth-test/protected" -H "Authorization: Bearer TOKEN"
+
+Step 10 - Test Invalid or expired JWT
+curl.exe -i "http://127.0.0.1:8000/api/v1/auth-test/protected" -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyIiwicm9sZSI6InVzZXIiLCJleHAiOjE3ODc2NzYzODl9.3ZG44w-2yGWnZeuNleQV8kDfBgAmbCvtWOKwJytM5oI"
+
+Step 11 - Test Forgot Password
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/forgot-password" -H "Content-Type: application/json" --data-binary "@forgot_password.json"
+
+Step 12 - Reset Password with Valid Token
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/reset-password" -H "Content-Type: application/json" --data-binary "@reset_password.json"
+
+Step 13: Reset Password with Invalid/Expired Token
+curl.exe -i -X POST "http://127.0.0.1:8000/api/v1/auth/reset-password" -H "Content-Type: application/json" --data-binary "@reset_invalid.json"
+
+Step 14: Hash password
+python -c "from app.core.security import hash_password, verify_password; raw='Demo@12345'; hashed=hash_password(raw); print('Raw:', raw); print('Hash:', hashed); print('Verifies?', verify_password(raw, hashed))"

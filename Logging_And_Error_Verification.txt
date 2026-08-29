@@ -1,0 +1,31 @@
+Test 1 — Normal API Request
+curl.exe -i "http://127.0.0.1:8000/api/v1/health"
+
+Test 2 - Validation Error (Missing Field)
+$body = @{
+    email = "demo@example.com"
+} | ConvertTo-Json -Compress
+
+try {
+    Invoke-WebRequest `
+        -Uri "http://127.0.0.1:8000/api/v1/auth/register" `
+        -Method POST `
+        -ContentType "application/json" `
+        -Body $body
+}
+catch {
+    Write-Host "HTTP Status:" $_.Exception.Response.StatusCode.value__
+    Write-Host $_.ErrorDetails.Message
+}
+
+Test 3 — Invalid Path Parameter
+curl.exe -i "http://127.0.0.1:8000/api/v1/campaigns/path"
+
+Test 4 — Invalid Query Parameters
+curl.exe -i "http://127.0.0.1:8000/api/v1/campaigns/?user_id=invalid"
+
+Test 6 — 404 Handling
+curl.exe -i "http://127.0.0.1:8000/api/v1/does-not-exist"
+
+Test 7 — HTTP Exception Test
+curl.exe -i "http://127.0.0.1:8000/api/v1/campaigns/99999"

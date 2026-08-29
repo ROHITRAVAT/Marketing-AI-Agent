@@ -8,5 +8,9 @@ class MarketingAgentState(TypedDict):
     target_audience: str
     platform: str
     campaign_goal: str
+    analysis: str
     strategy: str
     generated_content: str
+    clarification_message: str
+    status: str
+    error_message: str

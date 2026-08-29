@@ -1,0 +1,32 @@
+Test 1 — Verify LangGraph Dependency
+.venv\Scripts\python.exe -c "import importlib.metadata; print(importlib.metadata.version('langgraph'))"
+
+Test 2 — Graph Compilation
+.venv\Scripts\python.exe -c "from app.agents.graph import marketing_graph; print('Graph successfully compiled:', marketing_graph)"
+
+Test 3 — Test Graph Invocation & Execution (Valid Input)
+.venv\Scripts\python.exe -c "
+import json
+from app.agents.graph import marketing_graph
+state = {
+    'product': 'AI Marketing Tools',
+    'target_audience': 'Small Business Owners',
+    'platform': 'LinkedIn',
+    'campaign_goal': 'Lead Generation'
+}
+result = marketing_graph.invoke(state)
+print(json.dumps(result, indent=2))
+"
+Test 4 — Test Conditional Edges (Invalid Input / Needs Clarification)
+.venv\Scripts\python.exe -c "
+import json
+from app.agents.graph import marketing_graph
+state = {
+    'product': 'AI Marketing Tools',
+    'target_audience': '',
+    'platform': '',
+    'campaign_goal': 'Lead Generation'
+}
+result = marketing_graph.invoke(state)
+print(json.dumps(result, indent=2))
+"
