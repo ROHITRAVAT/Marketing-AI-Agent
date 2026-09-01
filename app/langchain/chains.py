@@ -1,0 +1,37 @@
+"""Reusable LangChain chain builders."""
+
+from typing import Any
+
+from langchain_core.prompts import ChatPromptTemplate
+
+from app.langchain.llm import ChatOllama, get_chat_model
+from app.langchain.parsers import JSON_OUTPUT_PARSER, TEXT_OUTPUT_PARSER
+from app.langchain.prompts import (
+    CAMPAIGN_STRATEGY_PROMPT,
+    CONTENT_GENERATION_PROMPT,
+    SOCIAL_MEDIA_PROMPT,
+)
+
+
+def build_text_chain(
+    prompt: ChatPromptTemplate = CONTENT_GENERATION_PROMPT,
+    model: ChatOllama | None = None,
+) -> Any:
+    """Compose a prompt -> model -> string parser chain."""
+
+    return prompt | (model or get_chat_model()) | TEXT_OUTPUT_PARSER
+
+
+def build_json_chain(
+    prompt: ChatPromptTemplate = CAMPAIGN_STRATEGY_PROMPT,
+    model: ChatOllama | None = None,
+) -> Any:
+    """Compose a prompt -> model -> JSON parser chain."""
+
+    return prompt | (model or get_chat_model()) | JSON_OUTPUT_PARSER
+
+
+def build_social_media_chain(model: ChatOllama | None = None) -> Any:
+    """Convenience chain for generating social media copy."""
+
+    return build_text_chain(prompt=SOCIAL_MEDIA_PROMPT, model=model)

@@ -1,10 +1,25 @@
+import importlib
+
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 
+import app.core.config as core_config
+import app.ollama.config as ollama_config
+import app.ollama.service as ollama_service
 from app.main import app
 from app.ollama.service import OllamaService
 from app.ollama.service import get_ollama_service
+
+
+def test_default_ollama_model_is_qwen3(monkeypatch):
+    monkeypatch.setenv("OLLAMA_MODEL", "qwen3")
+
+    importlib.reload(core_config)
+    importlib.reload(ollama_config)
+    importlib.reload(ollama_service)
+
+    assert ollama_service.OLLAMA_SETTINGS.model == "qwen3"
 
 
 @pytest.mark.asyncio
