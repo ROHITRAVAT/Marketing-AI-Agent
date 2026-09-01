@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from app.core.config import (
     OLLAMA_HOST,
     OLLAMA_MODEL,
+    OLLAMA_EMBEDDING_MODEL,
     OLLAMA_PORT,
     OLLAMA_TIMEOUT,
     OLLAMA_URL,
@@ -29,6 +30,7 @@ class OllamaSettings:
     port: int = OLLAMA_PORT
     url: str = OLLAMA_URL
     model: str = OLLAMA_MODEL
+    embedding_model: str = OLLAMA_EMBEDDING_MODEL
     timeout: float = OLLAMA_TIMEOUT
 
 

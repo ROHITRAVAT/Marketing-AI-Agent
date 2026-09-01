@@ -76,6 +76,29 @@ class OllamaService:
         data = response.json()
         return data.get("response", "")
 
+    async def embed(
+        self,
+        text: str,
+        *,
+        model: str | None = None,
+    ) -> list[float]:
+        """Generate vector embedding for the given text using the configured model.
+
+        Raises :class:`ValueError` when no embedding model is configured.
+        """
+        model_name = model or OLLAMA_SETTINGS.embedding_model
+        if not model_name:
+            raise ValueError("No Ollama embedding model configured.")
+        
+        payload = {"model": model_name, "prompt": text}
+        response = await asyncio.wait_for(
+            self.client.post("/api/embeddings", json=payload),
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return data.get("embedding", [])
+
     async def _get_json(self, path: str) -> dict[str, Any]:
         response = await asyncio.wait_for(
             self.client.get(path),

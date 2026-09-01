@@ -34,9 +34,12 @@ async def http_exception_handler(
         request_id=request_id,
     )
 
+    response_content = error_response.model_dump()
+    response_content["detail"] = str(exc.detail)
+
     return JSONResponse(
         status_code=exc.status_code,
-        content=error_response.model_dump(),
+        content=response_content,
     )
 
 async def validation_exception_handler(
@@ -92,4 +95,4 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content=error_response.model_dump(),
-    )
+    )
