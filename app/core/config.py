@@ -68,10 +68,9 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "ollama")
 OLLAMA_PORT = int(os.getenv("OLLAMA_PORT", "11434"))
 OLLAMA_URL = os.getenv("OLLAMA_URL", f"http://{OLLAMA_HOST}:{OLLAMA_PORT}")
 
-# Model to use for inference. Kept EMPTY on purpose: the model (Qwen 3) is
-# installed in a separate task. Infrastructure connectivity must already work
-# without any model downloaded.
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "")
+# Default language model used for inference. Qwen 3 is the application default
+# so generation works out of the box when the model is installed in Ollama.
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3")
 
 # Timeout (seconds) for Ollama HTTP operations (health checks, model listing).
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
@@ -95,3 +94,9 @@ FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:5173",
 )
+
+# LangChain runtime defaults used by the Ollama-backed chat wrappers.
+LANGCHAIN_TEMPERATURE = float(os.getenv("LANGCHAIN_TEMPERATURE", "0.2"))
+LANGCHAIN_MAX_TOKENS = int(os.getenv("LANGCHAIN_MAX_TOKENS", "1024"))
+LANGCHAIN_TOP_P = float(os.getenv("LANGCHAIN_TOP_P", "0.9"))
+LANGCHAIN_TOP_K = int(os.getenv("LANGCHAIN_TOP_K", "40"))

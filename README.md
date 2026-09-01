@@ -17,6 +17,8 @@ marketing campaigns. Built with a FastAPI backend and a React + TypeScript front
 | Database | PostgreSQL 16 · SQLAlchemy 2.x (async) · Alembic |
 | Vector database | Qdrant · qdrant-client (async) |
 | LLM runtime | Ollama (Docker) · httpx (async) |
+| LLM orchestration | LangChain · LangGraph · prompt templates · output parsers |
+| Browser automation | OpenClaw (cmdop) |
 | Version control | Git |
 
 ---
@@ -257,6 +259,27 @@ app/ollama/
 - **Client** (`client.py`): builds an `httpx.AsyncClient` (async, so it never
   blocks the FastAPI event loop) from `OLLAMA_URL` and `OLLAMA_TIMEOUT`. A
   process-wide singleton is cached and closed on application shutdown.
+
+---
+
+## OpenClaw Integration
+
+OpenClaw is used here as the installer/wrapper for the `cmdop` browser
+automation runtime. The backend does not try to launch browser sessions during
+startup; instead, it uses a small LangGraph workflow to detect whether the
+runtime is installed and to report a clear status message.
+
+The integration lives in [app/agents/openclaw.py](app/agents/openclaw.py) and
+is verified by [tests/test_openclaw_integration.py](tests/test_openclaw_integration.py).
+
+To run the standalone verification script:
+
+```bash
+python scripts/verify_openclaw.py
+```
+
+If the runtime is missing, install it first by running `openclaw` from a shell
+on the machine where you want browser automation available.
 - **Service** (`service.py`): reusable operations — `check_connection()`
   (hits `GET /api/tags`) and `list_models()`. A minimal `generate()` wrapper
   exists as a building block for later tasks, but no AI agent, RAG, prompt
@@ -424,6 +447,7 @@ marketing-ai-agent/
 │   ├── agents/             # AI agent logic (e.g. MarketingAgent)
 │   ├── core/               # App config & settings
 │   ├── database/           # DB connections & session setup
+│   ├── langchain/          # LangChain config, prompts, parsers, chains
 │   ├── qdrant/             # Qdrant client, collections & service layer
 │   ├── ollama/             # Ollama client, config & service layer
 │   ├── middleware/         # Request middleware
@@ -440,6 +464,10 @@ marketing-ai-agent/
 ├── docs/                   # Documentation
 └── docker/                 # Docker / container config
 ```
+
+The LangChain layer is intentionally thin: it centralizes model settings,
+prompt templates, output parsers, and reusable chain builders while reusing
+the existing Ollama configuration.
 
 ---
 

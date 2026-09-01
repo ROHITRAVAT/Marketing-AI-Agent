@@ -15,6 +15,16 @@ qdrant-client==1.19.0
 # HTTP client (used for the Ollama integration; async, non-blocking)
 httpx==0.28.1
 
+# LangChain (prompt templates, output parsers, and Ollama chat wrappers)
+langchain-core==0.3.66
+langchain-community==0.3.27
+
+# LangGraph (stateful orchestration for agent workflows)
+langgraph==0.3.34
+
+# OpenClaw (installer/wrapper for the cmdop browser automation runtime)
+openclaw==2.0.2
+
 # Testing
 pytest==8.3.5
 pytest-asyncio==0.25.3
