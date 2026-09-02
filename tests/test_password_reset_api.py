@@ -171,7 +171,7 @@ async def test_reset_password_invalid_token(client):
     )
 
     assert response.status_code == 400
-    assert response.json()["detail"] == (
+    assert response.json()["message"] == (
         "Invalid or expired password reset token"
     )
 

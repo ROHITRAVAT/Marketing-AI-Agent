@@ -13,14 +13,10 @@ from qdrant_client.models import Distance
 from app.core.config import QDRANT_VECTOR_SIZE
 
 # Application collections (all created with COSINE distance).
-COLLECTION_MARKETING_CONTENT = "marketing_content"
-COLLECTION_MARKETING_KNOWLEDGE = "marketing_knowledge"
-COLLECTION_MARKETING_CAMPAIGNS = "marketing_campaigns"
+COLLECTION_MARKETING_DOCUMENTS = "marketing_documents"
 
 QDRANT_COLLECTIONS = [
-    COLLECTION_MARKETING_CONTENT,
-    COLLECTION_MARKETING_KNOWLEDGE,
-    COLLECTION_MARKETING_CAMPAIGNS,
+    COLLECTION_MARKETING_DOCUMENTS,
 ]
 
 # Vector distance metric used for all collections.

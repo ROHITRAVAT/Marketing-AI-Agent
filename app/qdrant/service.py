@@ -15,6 +15,7 @@ from qdrant_client.models import (
     PointIdsList,
     PointStruct,
     VectorParams,
+    PayloadSchemaType,
 )
 
 from app.core.config import QDRANT_TIMEOUT
@@ -139,6 +140,17 @@ class QdrantService:
             timeout=self.timeout,
         )
 
+    async def create_payload_index(self, name: str, field_name: str, field_type: PayloadSchemaType) -> Any:
+        """Create a payload index for a specific field."""
+        return await asyncio.wait_for(
+            self.client.create_payload_index(
+                collection_name=name,
+                field_name=field_name,
+                field_schema=field_type,
+            ),
+            timeout=self.timeout,
+        )
+
     async def ensure_collections(self) -> dict[str, list[str]]:
         """Idempotently create the configured collections.
 
@@ -152,9 +164,17 @@ class QdrantService:
             if await self.collection_exists(name):
                 existing.append(name)
                 continue
+            
             await self.create_collection(name)
+            
+            # Create payload indices to optimize filtering queries
+            await self.create_payload_index(name, "document_id", PayloadSchemaType.KEYWORD)
+            await self.create_payload_index(name, "source_type", PayloadSchemaType.KEYWORD)
+            await self.create_payload_index(name, "knowledge_type", PayloadSchemaType.KEYWORD)
+            await self.create_payload_index(name, "user_id", PayloadSchemaType.KEYWORD)
+            
             created.append(name)
-            logger.info("Created Qdrant collection: %s", name)
+            logger.info("Created Qdrant collection with payload indices: %s", name)
         return {"created": created, "existing": existing}
 
 

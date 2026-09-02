@@ -57,6 +57,7 @@ QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", "")
 # WARNING: this MUST match the dimensionality of the embedding model that will
 # generate vectors in later phases. Changing it after creating a collection
 # requires recreating that collection.
+# For all-minilm, the vector size is 384.
 QDRANT_VECTOR_SIZE = int(os.getenv("QDRANT_VECTOR_SIZE", "384"))
 
 # Timeout (seconds) for Qdrant client operations (health checks, upserts, searches).
@@ -71,6 +72,10 @@ OLLAMA_URL = os.getenv("OLLAMA_URL", f"http://{OLLAMA_HOST}:{OLLAMA_PORT}")
 # Default language model used for inference. Qwen 3 is the application default
 # so generation works out of the box when the model is installed in Ollama.
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3")
+
+# Embedding model to use for generating vector embeddings.
+# Example: "all-minilm" (384 dimensions)
+OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "all-minilm")
 
 # Timeout (seconds) for Ollama HTTP operations (health checks, model listing).
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
