@@ -1,3 +1,4 @@
+import pytest
 import pytest_asyncio
 
 from sqlalchemy.ext.asyncio import (
@@ -68,3 +69,4 @@ async def db_session(test_engine: AsyncEngine):
         await session.commit()
 
         yield session
+

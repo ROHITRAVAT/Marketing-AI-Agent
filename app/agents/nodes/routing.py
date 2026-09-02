@@ -18,6 +18,9 @@ def route_after_analysis(state: MarketingAgentState) -> str:
         if not state.get(field):
             return "needs_clarification"
 
+    # TODO: Connect SEO/social prompts.
+    # Routing logic to choose specific prompts based on the user's request
+    # is explicitly deferred to the later Marketing Automation phase.
     return "ready_for_strategy"
 
 def route_after_strategy(state: MarketingAgentState) -> str:
