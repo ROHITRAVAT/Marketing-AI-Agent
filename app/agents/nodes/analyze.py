@@ -2,10 +2,10 @@ from app.agents.state import MarketingAgentState
 from app.agents.utils.errors import handle_node_error
 
 
-def analyze_request(state: MarketingAgentState) -> MarketingAgentState:
+def analyze_request(state: MarketingAgentState) -> dict:
     """
-    Analyze the marketing request and store the analysis
-    in the agent state.
+    Analyze the marketing request and return the analysis
+    as a state update.
     """
 
     print("Analyzing marketing request...")
@@ -21,7 +21,7 @@ def analyze_request(state: MarketingAgentState) -> MarketingAgentState:
         missing_fields = []
 
         for field, description in required_fields.items():
-            if not state.get(field):
+            if not getattr(state, field):
                 missing_fields.append(description)
 
         if missing_fields:
@@ -33,14 +33,13 @@ def analyze_request(state: MarketingAgentState) -> MarketingAgentState:
             )
         else:
             analysis = (
-                f"The user wants to create a {state['platform']} campaign "
-                f"for {state['product']}, targeting "
-                f"{state['target_audience']}, with the goal of "
-                f"{state['campaign_goal']}."
+                f"The user wants to create a {state.platform} campaign "
+                f"for {state.product}, targeting "
+                f"{state.target_audience}, with the goal of "
+                f"{state.campaign_goal}."
             )
 
         return {
-            **state,
             "analysis": analysis,
         }
 

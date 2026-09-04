@@ -1,7 +1,7 @@
 from app.agents.state import MarketingAgentState
+from app.agents.enums import AgentStatus
 
-
-def request_clarification(state: MarketingAgentState) -> MarketingAgentState:
+def request_clarification(state: MarketingAgentState) -> dict:
     """
     Identify missing marketing requirements and ask the user
     for the missing information.
@@ -19,7 +19,7 @@ def request_clarification(state: MarketingAgentState) -> MarketingAgentState:
     missing_fields = []
 
     for field, description in required_fields.items():
-        if not state.get(field):
+        if not getattr(state, field):
             missing_fields.append(description)
 
     clarification_message = (
@@ -30,7 +30,6 @@ def request_clarification(state: MarketingAgentState) -> MarketingAgentState:
     )
 
     return {
-        **state,
         "clarification_message": clarification_message,
-        "status": "needs_clarification",
+        "status": AgentStatus.NEEDS_CLARIFICATION,
     }

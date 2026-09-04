@@ -1,27 +1,26 @@
 """Qdrant collections used by the Marketing AI Agent.
 
-VECTOR_SIZE is configurable via the ``QDRANT_VECTOR_SIZE`` environment variable
-(default: 384 for infrastructure verification only).
-
-WARNING: the vector dimension MUST match the embedding model used to generate
-vectors in later phases (LangChain/embeddings). Changing the dimension after a
-collection has been created requires recreating that collection.
+VECTOR_SIZE is configurable via the ``QDRANT_VECTOR_SIZE`` environment variable.
+The vector dimension MUST match the embedding model used to generate vectors.
 """
 
 from qdrant_client.models import Distance
 
 from app.core.config import QDRANT_VECTOR_SIZE
 
-# Application collections (all created with COSINE distance).
-COLLECTION_MARKETING_DOCUMENTS = "marketing_documents"
+
+# Main collection used for marketing knowledge retrieval.
+COLLECTION_MARKETING_DOCUMENTS = "marketing_knowledge"
+
 
 QDRANT_COLLECTIONS = [
     COLLECTION_MARKETING_DOCUMENTS,
 ]
 
-# Vector distance metric used for all collections.
+
+# Vector distance metric used for semantic search.
 DISTANCE = Distance.COSINE
 
-# Vector dimension for all collections — MUST match the embedding model (see
-# the warning above and ``QDRANT_VECTOR_SIZE`` in ``app/core/config.py``).
+
+# Must match the embedding model dimension.
 VECTOR_SIZE = QDRANT_VECTOR_SIZE

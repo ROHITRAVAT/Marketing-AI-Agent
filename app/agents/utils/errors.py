@@ -1,7 +1,7 @@
 import logging
 
 from app.agents.state import MarketingAgentState
-
+from app.agents.enums import AgentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -10,12 +10,12 @@ def handle_node_error(
     state: MarketingAgentState,
     error: Exception,
     node_name: str,
-) -> MarketingAgentState:
+) -> dict:
     """
     Handle an unexpected error that occurs inside an agent node.
 
     The detailed exception is logged for developers.
-    A safe error message is stored in the state for the application.
+    A safe error message is returned as a state update.
     """
 
     logger.exception(
@@ -30,7 +30,6 @@ def handle_node_error(
     )
 
     return {
-        **state,
-        "status": "failed",
+        "status": AgentStatus.FAILED,
         "error_message": error_message,
     }
