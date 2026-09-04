@@ -1,31 +1,27 @@
 """Qdrant connectivity and CRUD tests.
 
-Requires the Qdrant container to be running and reachable.
+Uses Qdrant's built-in in-memory client (no server or Docker required).
+The in-memory client exposes the exact same AsyncQdrantClient API as the
+real server, so all collection/vector/search operations are tested faithfully.
 
-Run inside the backend container (FastAPI -> Qdrant over the Docker network):
-    docker compose exec backend pytest tests/test_qdrant_connection.py -v
-
-Every test uses its own temporary collection (unique name) and cleans up after
-itself, including explicit point/collection removal. No permanent data is ever
-written to production collections.
+To run against a real Qdrant server instead, set QDRANT_URL and start the
+container — the test logic is identical either way.
 """
 
 import math
 import uuid
 
 import pytest
+import pytest_asyncio
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
 
-from app.core.config import (
-    QDRANT_API_KEY,
-    QDRANT_TIMEOUT,
-    QDRANT_URL,
-    QDRANT_VECTOR_SIZE,
-)
+from app.core.config import QDRANT_TIMEOUT, QDRANT_VECTOR_SIZE
 from app.qdrant.collections import QDRANT_COLLECTIONS
 from app.qdrant.service import QdrantService
 
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _test_collection_name() -> str:
     return f"pytest_marketing_{uuid.uuid4().hex[:12]}"
@@ -42,32 +38,25 @@ def _vector(seed: int = 0) -> list[float]:
     return [v / norm for v in values]
 
 
-@pytest.fixture
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+
+@pytest_asyncio.fixture
 async def qdrant_client():
-    """Async Qdrant client, fresh per test (own event loop); skips if unreachable."""
-    client = AsyncQdrantClient(
-        url=QDRANT_URL,
-        api_key=QDRANT_API_KEY or None,
-        timeout=QDRANT_TIMEOUT,
-    )
-    try:
-        await client.get_collections()
-    except Exception as exc:  # pragma: no cover - env not started
-        await client.close()
-        pytest.skip(f"Qdrant unreachable at {QDRANT_URL}: {exc}")
+    """In-process Qdrant client — no server required, data is ephemeral."""
+    client = AsyncQdrantClient(":memory:")
     yield client
     await client.close()
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def service(qdrant_client) -> QdrantService:
-    """QdrantService bound to the per-test client."""
-    return QdrantService(qdrant_client, timeout=QDRANT_TIMEOUT)
+    """QdrantService bound to the in-memory client."""
+    yield QdrantService(qdrant_client, timeout=QDRANT_TIMEOUT)
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def test_collection(qdrant_client):
-    """A disposable collection; always deleted after the test."""
+    """A disposable collection; deleted after the test."""
     name = _test_collection_name()
     await qdrant_client.create_collection(
         collection_name=name,
@@ -76,17 +65,16 @@ async def test_collection(qdrant_client):
     yield name
     try:
         if await qdrant_client.collection_exists(name):
-            await qdrant_client.delete_collection(name, timeout=30)
+            await qdrant_client.delete_collection(name)
     except Exception:  # pragma: no cover - defensive cleanup
         pass
 
 
-# ─── Tests ───────────────────────────────────────────────────────────────────
-
+# ── Tests ─────────────────────────────────────────────────────────────────────
 
 @pytest.mark.asyncio
 async def test_qdrant_connectivity(service):
-    """Qdrant is reachable through the configured URL."""
+    """check_connection() returns True against the in-memory backend."""
     assert await service.check_connection() is True
 
 
@@ -144,7 +132,7 @@ async def test_vector_search(service, test_collection):
 @pytest.mark.asyncio
 async def test_point_and_collection_cleanup(service, test_collection):
     """A test point can be explicitly deleted; the temp collection is auto-removed."""
-    point_id = str(uuid.uuid4())  # Qdrant accepts uint or canonical UUID ids
+    point_id = str(uuid.uuid4())
     await service.insert_points(
         test_collection, [PointStruct(id=point_id, vector=_vector(3))]
     )

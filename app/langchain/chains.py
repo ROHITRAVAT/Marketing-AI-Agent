@@ -1,8 +1,9 @@
 """Reusable LangChain chain builders."""
 
-from typing import Any
+from typing import Any, Type
 
 from langchain_core.prompts import ChatPromptTemplate
+from pydantic import BaseModel
 
 from app.langchain.llm import ChatOllama, get_chat_model
 from app.langchain.parsers import JSON_OUTPUT_PARSER, TEXT_OUTPUT_PARSER
@@ -31,7 +32,19 @@ def build_json_chain(
     return prompt | (model or get_chat_model()) | JSON_OUTPUT_PARSER
 
 
+def build_structured_chain(
+    schema: Type[BaseModel],
+    prompt: ChatPromptTemplate = CAMPAIGN_STRATEGY_PROMPT,
+    model: ChatOllama | None = None,
+) -> Any:
+    """Compose a prompt -> model (with structured output) chain."""
+    llm = model or get_chat_model()
+    # Ollama in langchain 0.3 supports with_structured_output using JSON schema mode.
+    structured_llm = llm.with_structured_output(schema)
+    return prompt | structured_llm
+
+
 def build_social_media_chain(model: ChatOllama | None = None) -> Any:
     """Convenience chain for generating social media copy."""
 
-    return build_text_chain(prompt=SOCIAL_MEDIA_PROMPT, model=model)
+    return build_text_chain(prompt=SOCIAL_MEDIA_PROMPT, model=model)

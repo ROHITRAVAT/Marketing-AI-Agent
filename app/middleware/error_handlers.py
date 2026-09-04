@@ -30,16 +30,14 @@ async def http_exception_handler(
     error_response = ErrorResponse(
         success=False,
         message=str(exc.detail),
+        detail=str(exc.detail),
         error_code=f"HTTP_{exc.status_code}",
         request_id=request_id,
     )
 
-    response_content = error_response.model_dump()
-    response_content["detail"] = str(exc.detail)
-
     return JSONResponse(
         status_code=exc.status_code,
-        content=response_content,
+        content=error_response.model_dump(),
     )
 
 async def validation_exception_handler(
