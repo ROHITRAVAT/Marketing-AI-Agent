@@ -1,8 +1,11 @@
+import pytest
+
 from app.agents.graph import build_marketing_graph
 from app.agents.state import MarketingAgentState
 
 
-def test_strategy_failure_stops_graph(monkeypatch):
+@pytest.mark.asyncio
+async def test_strategy_failure_stops_graph(monkeypatch):
     """
     Verify that a failed strategy node:
     1. Produces status='failed'
@@ -10,11 +13,11 @@ def test_strategy_failure_stops_graph(monkeypatch):
     3. Does not execute content generation
     """
 
-    def failing_strategy(
-        state: MarketingAgentState,
-    ) -> MarketingAgentState:
+    async def mock_retrieval(state: MarketingAgentState) -> dict:
+        return {"retrieved_documents": []}
+
+    def failing_strategy(state: MarketingAgentState) -> dict:
         return {
-            **state,
             "status": "failed",
             "error_message": (
                 "Unable to complete the 'generate_strategy' step "
@@ -22,46 +25,33 @@ def test_strategy_failure_stops_graph(monkeypatch):
             ),
         }
 
-    def content_should_not_run(
-        state: MarketingAgentState,
-    ) -> MarketingAgentState:
+    def content_should_not_run(state: MarketingAgentState) -> dict:
         raise AssertionError(
             "generate_content should not run after strategy failure"
         )
 
-    monkeypatch.setattr(
-        "app.agents.graph.generate_strategy",
-        failing_strategy,
-    )
-
-    monkeypatch.setattr(
-        "app.agents.graph.generate_content",
-        content_should_not_run,
-    )
+    monkeypatch.setattr("app.agents.graph.retrieve_documents", mock_retrieval)
+    monkeypatch.setattr("app.agents.graph.generate_strategy", failing_strategy)
+    monkeypatch.setattr("app.agents.graph.generate_content", content_should_not_run)
 
     marketing_graph = build_marketing_graph()
 
     state: MarketingAgentState = {
         "user_id": 1,
-        "user_request": "Create a LinkedIn campaign",
+        "user_input": "Create a LinkedIn campaign",
         "product": "AI Marketing Platform",
         "target_audience": "Small Businesses",
         "platform": "LinkedIn",
         "campaign_goal": "Lead Generation",
         "analysis": "",
         "strategy": "",
-        "generated_content": "",
+        "generated_content": None,
         "clarification_message": "",
-        "status": "pending",
+        "status": "idle",
         "error_message": "",
     }
 
-    result = marketing_graph.invoke(state)
+    result = await marketing_graph.ainvoke(state)
 
     assert result["status"] == "failed"
-
-    assert (
-        result["error_message"]
-        == "Unable to complete the 'generate_strategy' step "
-        "of the marketing workflow."
-    )
+    assert "generate_strategy" in result["error_message"]

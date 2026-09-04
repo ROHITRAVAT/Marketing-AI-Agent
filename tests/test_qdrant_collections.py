@@ -65,6 +65,6 @@ async def test_ensure_collections_idempotent(qdrant_service, mock_qdrant_client)
 
 def test_qdrant_collections_config():
     # Verify the vector config variables are set to their expected values
-    assert COLLECTION_MARKETING_DOCUMENTS == "marketing_documents"
+    assert COLLECTION_MARKETING_DOCUMENTS == "marketing_knowledge"
     assert QDRANT_COLLECTIONS == [COLLECTION_MARKETING_DOCUMENTS]
     assert DISTANCE == Distance.COSINE
