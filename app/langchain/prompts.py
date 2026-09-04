@@ -88,3 +88,19 @@ REVIEW_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ]
 )
+
+SEO_OPTIMIZATION_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are an expert SEO specialist. Analyze marketing content and produce SEO recommendations: "
+            "5 targeted keywords, an optimized title, a meta description under 160 characters, and heading suggestions. "
+            "Output ONLY the requested SEO information without introductory filler.",
+        ),
+        (
+            "human",
+            "Product/Service: {product}\nTarget Audience: {target_audience}\n\n"
+            "Marketing Content:\n{generated_content}\n\nProvide SEO recommendations now:",
+        ),
+    ]
+)
