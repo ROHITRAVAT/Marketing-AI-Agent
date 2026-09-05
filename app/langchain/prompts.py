@@ -104,3 +104,33 @@ SEO_OPTIMIZATION_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ]
 )
+
+ADS_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a performance ads copywriter. Write concise, high-converting ad copy "
+            "with a strong hook and clear call-to-action, respecting platform character limits.",
+        ),
+        (
+            "human",
+            "Product/Service: {product}\nPlatform: {platform}\nTarget Audience: {audience}\n\n"
+            "Campaign Goal: {campaign_goal}\n\nWrite the ad copy now:",
+        ),
+    ]
+)
+
+EMAIL_MARKETING_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are an email marketing specialist. Write an engaging marketing email with a "
+            "compelling subject line, clear body copy, and a single strong call-to-action.",
+        ),
+        (
+            "human",
+            "Product/Service: {product}\nTarget Audience: {audience}\nCampaign Goal: {campaign_goal}\n\n"
+            "Source Content:\n{generated_content}\n\nWrite the subject line and email body now:",
+        ),
+    ]
+)

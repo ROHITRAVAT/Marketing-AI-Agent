@@ -10,9 +10,22 @@ from app.langchain.parsers import JSON_OUTPUT_PARSER, TEXT_OUTPUT_PARSER
 from app.langchain.prompts import (
     CAMPAIGN_STRATEGY_PROMPT,
     CONTENT_GENERATION_PROMPT,
-    SEO_OPTIMIZATION_PROMPT,
     SOCIAL_MEDIA_PROMPT,
+    SEO_OPTIMIZATION_PROMPT,
+    ADS_PROMPT,
+    EMAIL_MARKETING_PROMPT,
 )
+
+def build_ads_chain(model: ChatOllama | None = None) -> Any:
+    """Convenience chain for generating ad copy."""
+
+    return build_text_chain(prompt=ADS_PROMPT, model=model)
+
+
+def build_email_marketing_chain(model: ChatOllama | None = None) -> Any:
+    """Convenience chain for generating marketing emails."""
+
+    return build_text_chain(prompt=EMAIL_MARKETING_PROMPT, model=model)
 
 def build_seo_chain(model: ChatOllama | None = None) -> Any:
     """Convenience chain for generating SEO recommendations."""
