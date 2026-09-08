@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   Bot,
+  UserCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/utils/cn';
@@ -19,6 +20,7 @@ const navItems = [
   { name: 'AI Chat Agent', path: '/chat', icon: MessageSquare },
   { name: 'Campaigns', path: '/campaigns', icon: Megaphone },
   { name: 'Analytics', path: '/analytics', icon: BarChart3 },
+  { name: 'Profile', path: '/profile', icon: UserCircle },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
@@ -93,19 +95,23 @@ export const MainLayout: React.FC = () => {
 
         {/* User profile & Logout */}
         <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-          <div className="flex items-center space-x-3 truncate">
-            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-xs text-indigo-400">
+          <NavLink
+            to="/profile"
+            onClick={() => setSidebarOpen(false)}
+            className="flex items-center space-x-3 truncate group hover:opacity-90 transition-opacity"
+          >
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-xs text-indigo-400 group-hover:border-indigo-500 transition-colors">
               {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="truncate">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-medium text-white truncate group-hover:text-indigo-300">
                 {user?.username || user?.email || 'User'}
               </p>
               <p className="text-xs text-slate-500 truncate capitalize">
                 {user?.role || 'Guest'}
               </p>
             </div>
-          </div>
+          </NavLink>
           <button
             onClick={handleLogout}
             title="Log Out"

@@ -4,22 +4,39 @@ export interface User {
   id: number;
   email: string;
   username?: string | null;
+  full_name?: string | null;
   role: UserRole;
   is_active: boolean;
-  is_verified: boolean;
+  is_superuser?: boolean;
+  is_verified?: boolean;
   created_at?: string;
   updated_at?: string;
 }
 
-export interface AuthTokens {
+export interface UserLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface UserRegisterRequest {
+  email: string;
+  password: string;
+  username?: string;
+  full_name?: string;
+}
+
+export interface TokenResponse {
   access_token: string;
   token_type: string;
 }
 
-export interface AuthResponse {
-  access_token: string;
-  token_type: string;
-  user: User;
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
 }
 
 export interface Campaign {
