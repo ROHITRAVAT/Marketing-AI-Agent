@@ -1,13 +1,14 @@
 import logging
 
-from fastapi import Request, HTTPException
-from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi import Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.encoders import jsonable_encoder
 
 from app.schemas.common import ErrorResponse
 from app.core.request_context import get_request_id
+from app.core.errors import MarketingAgentError
 
 logger = logging.getLogger(__name__)
 
@@ -93,4 +94,39 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content=error_response.model_dump(),
+    )
+
+async def marketing_agent_error_handler(
+    request: Request, 
+    exc: MarketingAgentError
+) -> JSONResponse:
+    """
+    Global exception handler for MarketingAgentError.
+    Ensures safe, structured errors are returned to the frontend.
+    """
+    logger.error(
+        f"MarketingAgentError caught in middleware: {exc.error_code} - {exc.message}",
+        exc_info=exc
+    )
+    
+    status_code = 400
+    if exc.category.value == "AUTHENTICATION_ERROR":
+        status_code = 401
+    elif exc.category.value == "AUTHORIZATION_ERROR":
+        status_code = 403
+    elif exc.category.value in ["NETWORK_ERROR", "TIMEOUT_ERROR", "API_ERROR", "VECTOR_DB_ERROR"]:
+        status_code = 502
+    elif exc.category.value == "RATE_LIMIT_ERROR":
+        status_code = 429
+    
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "success": False,
+            "error": {
+                "code": exc.error_code,
+                "message": exc.user_message or "An unexpected error occurred.",
+                "retryable": exc.retryable
+            }
+        }
     )

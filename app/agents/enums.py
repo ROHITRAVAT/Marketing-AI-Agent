@@ -5,6 +5,8 @@ class ApprovalStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    EXPIRED = "expired"
+    CANCELLED = "cancelled"
 
 class PlanStepStatus(str, Enum):
     PENDING = "pending"
@@ -23,5 +25,7 @@ class AgentStatus(str, Enum):
     GENERATING = "generating"
     REVIEWING = "reviewing"
     WAITING_FOR_APPROVAL = "waiting_for_approval"
+    RETRYING = "retrying"
     COMPLETED = "completed"
     FAILED = "failed"
+    REQUIRES_MANUAL_ACTION = "requires_manual_action"

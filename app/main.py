@@ -13,13 +13,16 @@ from app.middleware.error_handlers import (
     http_exception_handler,
     validation_exception_handler,
     unhandled_exception_handler,
+    marketing_agent_error_handler,
 )
+from app.core.errors import MarketingAgentError
 from app.api.router import api_router
 from app.api.routes.home import router as home_router
 from app.database.connection import engine
 from app.ollama.client import close_async_client as close_ollama_client
 from app.qdrant.client import close_async_client as close_qdrant_client
 from app.qdrant.service import ensure_qdrant_collections
+from app.agents.checkpoint import setup_checkpointer
 
 logger = logging.getLogger(__name__)
 @asynccontextmanager
@@ -37,6 +40,13 @@ async def lifespan(app: FastAPI):
     except Exception as exc:  # pragma: no cover - operational fallback
         # Fail gracefully: the API still starts and /health reports degraded status.
         logger.info("Qdrant unavailable at startup, collection init skipped: %s", exc)
+
+    try:
+        await setup_checkpointer()
+        logger.info("LangGraph checkpointer setup successful")
+    except Exception as exc:
+        logger.error("LangGraph checkpointer setup failed: %s", exc)
+
     yield
     await engine.dispose()
     await close_qdrant_client()

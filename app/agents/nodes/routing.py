@@ -50,3 +50,13 @@ def route_after_review(state: MarketingAgentState) -> str:
         return "failed"
         
     return "needs_revision"
+
+
+def route_after_human_approval(state: MarketingAgentState) -> str:
+    """
+    Decide whether to execute tools or fail based on human approval.
+    """
+    if state.status == AgentStatus.FAILED or state.approval_status == ApprovalStatus.REJECTED:
+        return "failed"
+
+    return "approved"

@@ -21,6 +21,8 @@ langchain-community==0.3.27
 
 # LangGraph (stateful orchestration for agent workflows)
 langgraph==0.3.34
+langgraph-checkpoint-postgres==2.0.4
+psycopg[binary,pool]==3.2.3
 
 # OpenClaw (installer/wrapper for the cmdop browser automation runtime)
 openclaw==2.0.2

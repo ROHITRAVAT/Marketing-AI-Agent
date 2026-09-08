@@ -19,10 +19,10 @@ from app.services.password_reset_service import (
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_creates_token(db_session):
+async def test_request_password_reset_creates_token(seeded_db_session):
     """An active user should receive a password reset token."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -49,10 +49,10 @@ async def test_request_password_reset_creates_token(db_session):
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_unknown_email(db_session):
+async def test_request_password_reset_unknown_email(seeded_db_session):
     """An unknown email should not create a password reset token."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -63,10 +63,10 @@ async def test_request_password_reset_unknown_email(db_session):
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_inactive_user(db_session):
+async def test_request_password_reset_inactive_user(seeded_db_session):
     """An inactive user should not receive a password reset token."""
 
-    db = db_session
+    db = seeded_db_session
 
     result = await db.execute(
         select(User).where(
@@ -88,10 +88,10 @@ async def test_request_password_reset_inactive_user(db_session):
 
 
 @pytest.mark.asyncio
-async def test_request_password_reset_revokes_previous_token(db_session):
+async def test_request_password_reset_revokes_previous_token(seeded_db_session):
     """A new reset request should revoke the previous active token."""
 
-    db = db_session
+    db = seeded_db_session
 
     first_token = await request_password_reset(
         db,
@@ -140,10 +140,10 @@ async def test_request_password_reset_revokes_previous_token(db_session):
 
 
 @pytest.mark.asyncio
-async def test_password_reset_token_is_stored_as_hash(db_session):
+async def test_password_reset_token_is_stored_as_hash(seeded_db_session):
     """The database should store only the hashed reset token."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -181,10 +181,10 @@ async def test_password_reset_token_is_stored_as_hash(db_session):
 
 
 @pytest.mark.asyncio
-async def test_password_reset_token_has_future_expiration(db_session):
+async def test_password_reset_token_has_future_expiration(seeded_db_session):
     """A password reset token should expire in the future."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -215,10 +215,10 @@ async def test_password_reset_token_has_future_expiration(db_session):
 
 
 @pytest.mark.asyncio
-async def test_validate_password_reset_token(db_session):
+async def test_validate_password_reset_token(seeded_db_session):
     """A valid reset token should be accepted."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -238,10 +238,10 @@ async def test_validate_password_reset_token(db_session):
 
 
 @pytest.mark.asyncio
-async def test_validate_password_reset_token_invalid(db_session):
+async def test_validate_password_reset_token_invalid(seeded_db_session):
     """An unknown token should be rejected."""
 
-    db = db_session
+    db = seeded_db_session
 
     reset_token = await validate_password_reset_token(
         db,
@@ -252,10 +252,10 @@ async def test_validate_password_reset_token_invalid(db_session):
 
 
 @pytest.mark.asyncio
-async def test_validate_password_reset_token_revoked(db_session):
+async def test_validate_password_reset_token_revoked(seeded_db_session):
     """A revoked token should be rejected."""
 
-    db = db_session
+    db = seeded_db_session
 
     first_token = await request_password_reset(
         db,
@@ -280,10 +280,10 @@ async def test_validate_password_reset_token_revoked(db_session):
 
 
 @pytest.mark.asyncio
-async def test_validate_password_reset_token_expired(db_session):
+async def test_validate_password_reset_token_expired(seeded_db_session):
     """An expired token should be rejected."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -317,10 +317,10 @@ async def test_validate_password_reset_token_expired(db_session):
 
 
 @pytest.mark.asyncio
-async def test_reset_password_success(db_session):
+async def test_reset_password_success(seeded_db_session):
     """A valid reset token should allow the user to change password."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -358,10 +358,10 @@ async def test_reset_password_success(db_session):
 
 
 @pytest.mark.asyncio
-async def test_reset_password_marks_token_used(db_session):
+async def test_reset_password_marks_token_used(seeded_db_session):
     """A successful reset should mark the token as used."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,
@@ -391,10 +391,10 @@ async def test_reset_password_marks_token_used(db_session):
 
 
 @pytest.mark.asyncio
-async def test_reset_password_cannot_reuse_token(db_session):
+async def test_reset_password_cannot_reuse_token(seeded_db_session):
     """A reset token can only be used once."""
 
-    db = db_session
+    db = seeded_db_session
 
     raw_token = await request_password_reset(
         db,

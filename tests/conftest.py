@@ -43,30 +43,35 @@ async def db_session(test_engine: AsyncEngine):
     )
 
     async with async_session() as session:
-        active_user = User(
-            id=1,
-            email="auth-test@example.com",
-            username="auth_test",
-            hashed_password=hash_password("StrongPass123"),
-            full_name="Auth Test User",
-            role="user",
-            is_active=True,
-            is_superuser=False,
-        )
-
-        inactive_user = User(
-            id=9,
-            email="inactive-test@example.com",
-            username="inactive_test",
-            hashed_password=hash_password("StrongPass123"),
-            full_name="Inactive Test User",
-            role="user",
-            is_active=False,
-            is_superuser=False,
-        )
-
-        session.add_all([active_user, inactive_user])
-        await session.commit()
-
         yield session
+
+
+@pytest_asyncio.fixture
+async def seeded_db_session(db_session: AsyncSession):
+    active_user = User(
+        id=1,
+        email="auth-test@example.com",
+        username="auth_test",
+        hashed_password=hash_password("StrongPass123"),
+        full_name="Auth Test User",
+        role="user",
+        is_active=True,
+        is_superuser=False,
+    )
+
+    inactive_user = User(
+        id=9,
+        email="inactive-test@example.com",
+        username="inactive_test",
+        hashed_password=hash_password("StrongPass123"),
+        full_name="Inactive Test User",
+        role="user",
+        is_active=False,
+        is_superuser=False,
+    )
+
+    db_session.add_all([active_user, inactive_user])
+    await db_session.commit()
+
+    yield db_session
 

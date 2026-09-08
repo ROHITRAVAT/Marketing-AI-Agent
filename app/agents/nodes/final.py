@@ -41,9 +41,15 @@ def generate_final_response(state: MarketingAgentState) -> dict:
                 
             final_response = "\n".join(final_response_parts) if final_response_parts else "Workflow completed successfully but no response was generated."
 
+        preserve_statuses = [
+            AgentStatus.FAILED, 
+            AgentStatus.NEEDS_CLARIFICATION, 
+            AgentStatus.REQUIRES_MANUAL_ACTION
+        ]
+        
         return {
             "final_response": final_response,
-            "status": state.status if state.status in [AgentStatus.FAILED, AgentStatus.NEEDS_CLARIFICATION] else AgentStatus.COMPLETED,
+            "status": state.status if state.status in preserve_statuses else AgentStatus.COMPLETED,
         }
 
     except Exception as error:

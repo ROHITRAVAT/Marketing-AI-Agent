@@ -5,6 +5,7 @@ from app.api.v1.endpoints.campaigns import router as campaigns_router
 from app.api.v1.endpoints.health import router as health_router
 from app.api.v1.endpoints.ollama import router as ollama_router
 from app.api.v1.endpoints.prompts import router as prompts_router
+from app.api.v1.endpoints.approvals import router as approvals_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(health_router)
@@ -13,3 +14,4 @@ api_router.include_router(auth_test_router)
 api_router.include_router(campaigns_router)
 api_router.include_router(ollama_router)
 api_router.include_router(prompts_router)
+api_router.include_router(approvals_router)

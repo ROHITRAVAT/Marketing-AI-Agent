@@ -19,11 +19,20 @@ class RetrievedDocument(BaseModel):
     score: float
     metadata: dict[str, Any] = Field(default_factory=dict)
 
+class ErrorInfo(BaseModel):
+    error_code: str
+    category: str
+    message: str
+    retryable: bool
+    user_message: str | None = None
+
 class ToolResult(BaseModel):
     tool_name: str = Field(min_length=1)
     status: ToolExecutionStatus
+    idempotency_key: str | None = None
     data: dict[str, Any] | None = None
     error: str | None = None
+    error_info: ErrorInfo | None = None
 
 class GeneratedContent(BaseModel):
     content_type: str = Field(min_length=1)

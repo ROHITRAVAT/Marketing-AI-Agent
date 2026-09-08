@@ -1,5 +1,6 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
+from contextlib import asynccontextmanager
 
 from app.agents.state import MarketingAgentState
 from app.agents.enums import AgentStatus, ApprovalStatus
@@ -14,11 +15,29 @@ async def test_agent_graph_success_flow():
         product="Coffee Blend",
         target_audience="Coffee enthusiasts",
         platform="Twitter",
-        campaign_goal="Increase sales by 10%"
+        campaign_goal="Increase sales by 10%",
+        user_id=1
     )
 
+    # Mock AsyncSessionLocal in approval node to avoid real DB calls
+    @asynccontextmanager
+    async def mock_session():
+        mock_db = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        async def mock_execute(*args, **kwargs):
+            return mock_result
+        mock_db.execute = mock_execute
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.refresh = AsyncMock()
+        yield mock_db
+
     # Mock the LLM chains and other external dependencies
-    with patch("app.agents.nodes.retrieval.retrieve_documents") as mock_retrieve, \
+    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_session), \
+         patch("app.agents.nodes.tools.AsyncSessionLocal", mock_session), \
+         patch("app.agents.nodes.approval.interrupt", return_value={"action": "approve"}), \
+         patch("app.agents.nodes.retrieval.retrieve_documents") as mock_retrieve, \
          patch("app.agents.nodes.strategy.build_text_chain") as mock_strategy_chain, \
          patch("app.agents.nodes.content.build_text_chain") as mock_content_chain, \
          patch("app.agents.nodes.planning.build_json_chain") as mock_planning_chain, \
@@ -30,7 +49,6 @@ async def test_agent_graph_success_flow():
         mock_retrieve.side_effect = mock_retrieve_func
 
         # Mock strategy generation
-        from unittest.mock import AsyncMock
         mock_text_chain_instance = MagicMock()
         mock_text_chain_instance.ainvoke = AsyncMock(return_value="Mocked Strategy")
         mock_strategy_chain.return_value = mock_text_chain_instance
@@ -48,7 +66,14 @@ async def test_agent_graph_success_flow():
         mock_review_chain_instance.ainvoke = AsyncMock(return_value={"approved": True, "score": 9.5, "feedback": "Good", "issues": []})
         mock_review_chain.return_value = mock_review_chain_instance
         
-        result_state = await graph.ainvoke(initial_state)
+        result_state = await graph.ainvoke(
+            initial_state,
+            config={
+                "configurable": {
+                    "thread_id": "test-success-flow"
+                }
+            }
+        )
 
         assert result_state["status"] == AgentStatus.COMPLETED
         assert result_state["strategy"] == "Mocked Strategy"

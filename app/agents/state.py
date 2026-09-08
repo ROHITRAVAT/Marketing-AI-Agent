@@ -8,6 +8,7 @@ from app.agents.schemas import (
     RetrievedDocument,
     ReviewResult,
     ToolResult,
+    ErrorInfo,
 )
 
 
@@ -43,6 +44,8 @@ class MarketingAgentState(BaseModel):
 
     # Review / Approval
     review_result: ReviewResult | None = None
+    approval_required: bool = False
+    approval_request_id: int | None = None
     approval_status: ApprovalStatus = ApprovalStatus.PENDING
     revision_count: int = 0
 
@@ -56,7 +59,13 @@ class MarketingAgentState(BaseModel):
 
     # Workflow
     status: AgentStatus | None = None
+    
+    # Error Tracking & Recovery
+    error: ErrorInfo | None = None
     error_message: str | None = None
+    retry_count: int = 0
+    last_failed_node: str | None = None
+    last_failed_tool: str | None = None
 
     # Final Response
     final_response: str | None = None

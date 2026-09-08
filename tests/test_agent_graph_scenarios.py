@@ -1,5 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+from contextlib import asynccontextmanager
 
 from app.agents.enums import AgentStatus
 from app.agents.graph import build_marketing_graph
@@ -47,9 +48,27 @@ async def test_agent_graph_revision_loop_regenerates_content_once_rejected():
         target_audience="Athletes",
         platform="Instagram",
         campaign_goal="Increase awareness",
+        user_id=1
     )
 
-    with patch("app.agents.nodes.retrieval.retrieve_documents") as mock_retrieve, \
+    # Mock AsyncSessionLocal in approval node to avoid real DB calls
+    @asynccontextmanager
+    async def mock_session():
+        mock_db = MagicMock()
+        mock_result = MagicMock()
+        mock_result.scalar_one_or_none.return_value = None
+        async def mock_execute(*args, **kwargs):
+            return mock_result
+        mock_db.execute = mock_execute
+        mock_db.add = MagicMock()
+        mock_db.commit = AsyncMock()
+        mock_db.refresh = AsyncMock()
+        yield mock_db
+
+    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_session), \
+         patch("app.agents.nodes.tools.AsyncSessionLocal", mock_session), \
+         patch("app.agents.nodes.approval.interrupt", return_value={"action": "approve"}), \
+         patch("app.agents.nodes.retrieval.retrieve_documents") as mock_retrieve, \
          patch("app.agents.nodes.strategy.build_text_chain") as mock_strategy_chain, \
          patch("app.agents.nodes.content.build_text_chain") as mock_content_chain, \
          patch("app.agents.nodes.planning.build_json_chain") as mock_planning_chain, \
@@ -77,7 +96,14 @@ async def test_agent_graph_revision_loop_regenerates_content_once_rejected():
         )
         mock_review_chain.return_value = review_chain
 
-        result_state = await graph.ainvoke(initial_state)
+        result_state = await graph.ainvoke(
+            initial_state,
+            config={
+                "configurable": {
+                    "thread_id": "test-revision-loop"
+                }
+            }
+        )
 
         assert result_state["revision_count"] == 2
         assert result_state["approval_status"].value == "approved"
