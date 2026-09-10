@@ -551,6 +551,20 @@ Real issues hit during development — documented so they don't cost anyone else
 ```bash
    docker compose exec postgres psql -U marketing -d marketing_ai -c "\dt"
 ```
+9. **`docker compose down -v` wipes ALL volumes, including pulled Ollama models.**
+   Confirmed twice — after using `-v` to reset Postgres, `ollama_models` was empty
+   too. If you only need to reset one service's data, target its volume specifically
+   instead:
+```bash
+   docker compose down
+   docker volume rm ai-marketing-develop_postgres_data
+   docker compose up -d
+```
+   If you do use `-v`, re-pull models afterward:
+```bash
+   docker compose exec ollama ollama pull qwen3:8b
+   docker compose exec ollama ollama pull all-minilm
+```
 
 ## License
 
