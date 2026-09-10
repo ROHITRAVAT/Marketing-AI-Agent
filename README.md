@@ -471,6 +471,101 @@ the existing Ollama configuration.
 
 ---
 
+## Troubleshooting / Known Gotchas
+
+Real issues hit during development — documented so they don't cost anyone else the time they cost us.
+
+1. **Port conflicts from native (non-Docker) installs on Windows.** Both Ollama and
+   PostgreSQL have shipped as separate native Windows installs that silently squat
+   on the same ports Docker needs (`11434` for Ollama, `5432` for Postgres). Symptoms:
+   Docker's container looks healthy, but the app connects to the wrong service and
+   fails with connection/auth errors. Check for a conflict:
+```bash
+   netstat -ano | findstr :5432
+   netstat -ano | findstr :11434
+```
+   If more than one PID is listed, find the native service and disable its auto-start:
+```bash
+   Get-Service | Where-Object { $_.Name -like "*postgres*" }
+   Stop-Service <service-name>          # run as Administrator
+   Set-Service <service-name> -StartupType Manual
+```
+
+2. **Models must be pulled per-machine, into the Docker container specifically.**
+   Running `ollama pull <model>` on your host installs it to your *native* Ollama
+   (if present) — not the Docker container the app actually uses. Always pull inside
+   the container, and every teammate needs to do this on their own machine:
+```bash
+   docker compose exec ollama ollama pull qwen3:8b
+   docker compose exec ollama ollama pull all-minilm
+   docker compose exec ollama ollama list   # confirm both are present
+```
+
+3. **Containers can silently exit — `docker compose ps` alone won't show you.**
+   Postgres, backend, and frontend have all been found `Exited` after a machine
+   sleep/Docker Desktop restart, while Ollama/Qdrant stayed up. Always check with:
+```bash
+   docker compose ps -a
+```
+   and bring anything exited back up:
+```bash
+   docker compose up -d <service>
+```
+
+4. **Running Python scripts on the host (outside Docker) needs a URL override.**
+   `.env` uses Docker-internal hostnames (`http://ollama:11434`, `http://qdrant:6333`),
+   which only resolve *inside* the Docker network. A script run directly via
+   `python -m ...` on your host needs the published localhost ports instead:
+```bash
+   $env:OLLAMA_URL = "http://localhost:11434"
+   $env:QDRANT_URL = "http://localhost:6333"
+```
+
+5. **The backend Docker image doesn't auto-update after a `git pull`.** New Python
+   files (e.g. new migrations, new modules) can be missing from the *running*
+   container even though they're on disk. If something that should exist gives an
+   import/file-not-found error inside the container, rebuild it:
+```bash
+   docker compose up -d --build backend
+```
+
+6. **`langgraph-checkpoint-postgres` needs an exact compatible version.** Installing
+   the latest version can pull in a `langgraph-checkpoint` release that conflicts
+   with the pinned `langgraph` version. Always install from `requirements.txt`
+   directly rather than installing packages one at a time:
+```bash
+   pip install -r requirements.txt
+```
+
+7. **`psycopg` needs the binary build on Windows.** The plain `psycopg` package
+   requires a native `libpq` library that Windows doesn't ship by default, causing
+   `ImportError: no pq wrapper available`. Fix:
+```bash
+   pip install "psycopg[binary]"
+```
+
+8. **A wiped Postgres volume (`docker compose down -v`) removes *everything*,
+   including tables created outside Alembic** (e.g. LangGraph's own checkpoint
+   tables, created automatically on first connection). After a volume reset, always
+   verify the real table list, not just `alembic heads`:
+```bash
+   docker compose exec postgres psql -U marketing -d marketing_ai -c "\dt"
+```
+9. **`docker compose down -v` wipes ALL volumes, including pulled Ollama models.**
+   Confirmed twice — after using `-v` to reset Postgres, `ollama_models` was empty
+   too. If you only need to reset one service's data, target its volume specifically
+   instead:
+```bash
+   docker compose down
+   docker volume rm ai-marketing-develop_postgres_data
+   docker compose up -d
+```
+   If you do use `-v`, re-pull models afterward:
+```bash
+   docker compose exec ollama ollama pull qwen3:8b
+   docker compose exec ollama ollama pull all-minilm
+```
+
 ## License
 
 _Not specified yet._
