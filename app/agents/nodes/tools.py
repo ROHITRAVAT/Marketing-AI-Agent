@@ -2,7 +2,12 @@ from app.agents.state import MarketingAgentState
 from app.agents.utils.errors import handle_node_error
 from app.agents.enums import ToolExecutionStatus
 from app.agents.schemas import ToolResult, ErrorInfo
-from app.langchain.chains import build_seo_chain, build_social_media_chain
+from app.langchain.chains import (
+    build_seo_chain, 
+    build_social_media_chain,
+    build_ads_chain,
+    build_email_marketing_chain
+)
 from app.database.connection import AsyncSessionLocal
 from app.models.approval import ApprovalRequest
 from app.agents.enums import ApprovalStatus
@@ -102,6 +107,59 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                     new_tool_results.append(
                         ToolResult(
                             tool_name="social_media_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "ads" in description_lower:
+                    chain = build_ads_chain()
+                    
+                    async def run_ads():
+                        return await chain.ainvoke({
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "campaign_goal": state.campaign_goal or "",
+                            "platform": state.platform or "",
+                            "generated_content": content_body,
+                        })
+
+                    result = await retry_operation(
+                        operation=run_ads,
+                        max_attempts=3,
+                        operation_name="ads_generation"
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="ads_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "email" in description_lower:
+                    chain = build_email_marketing_chain()
+                    
+                    async def run_email():
+                        return await chain.ainvoke({
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "campaign_goal": state.campaign_goal or "",
+                            "generated_content": content_body,
+                        })
+
+                    result = await retry_operation(
+                        operation=run_email,
+                        max_attempts=3,
+                        operation_name="email_marketing_generation"
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="email_marketing_generation",
                             status=ToolExecutionStatus.SUCCESS,
                             idempotency_key=idempotency_key,
                             data={"output": result},

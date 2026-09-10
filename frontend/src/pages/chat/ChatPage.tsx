@@ -6,13 +6,15 @@ import {
   Copy,
   Check,
   Trash2,
+  CheckCircle2,
+  XCircle,
 } from 'lucide-react';
 import { useChatStore } from '@/store/useChatStore';
 import { useCampaignStore } from '@/store/useCampaignStore';
 import { Button } from '@/components/ui/Button';
 
 export const ChatPage: React.FC = () => {
-  const { messages, isTyping, agentTone, setAgentTone, selectedCampaignId, setSelectedCampaignId, sendMessage, clearChat } =
+  const { messages, isTyping, agentTone, setAgentTone, selectedCampaignId, setSelectedCampaignId, sendMessage, clearChat, approveAction, rejectAction } =
     useChatStore();
   const { campaigns } = useCampaignStore();
 
@@ -147,6 +149,30 @@ export const ChatPage: React.FC = () => {
                           {suggestion}
                         </button>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Approval UI */}
+                {msg.approvalRequestId && (
+                  <div className="mt-4 p-4 bg-slate-900/80 border border-amber-500/30 rounded-xl space-y-3">
+                    <p className="text-amber-400 text-sm font-medium">Human Approval Required</p>
+                    <p className="text-slate-300 text-xs">The agent needs your permission to proceed with the execution.</p>
+                    <div className="flex gap-2 mt-2">
+                      <Button 
+                        onClick={() => approveAction("Looks good to me.")} 
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 h-8"
+                        disabled={isTyping}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Approve
+                      </Button>
+                      <Button 
+                        onClick={() => rejectAction("Rejected by user.")} 
+                        className="bg-rose-600 hover:bg-rose-500 text-white text-xs px-3 py-1.5 h-8"
+                        disabled={isTyping}
+                      >
+                        <XCircle className="w-3.5 h-3.5 mr-1" /> Reject
+                      </Button>
                     </div>
                   </div>
                 )}

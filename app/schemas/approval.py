@@ -17,6 +17,7 @@ class ApprovalResponse(BaseModel):
     status: ApprovalStatus
     reason: Optional[str] = None
     rejection_reason: Optional[str] = None
+    final_response: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     

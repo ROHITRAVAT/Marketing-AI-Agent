@@ -72,7 +72,9 @@ class ApprovalService:
         await db.refresh(approval)
 
         # Resume LangGraph Workflow
-        await ApprovalService._resume_workflow(approval.thread_id, {"action": "approve", "reason": reason})
+        result_state = await ApprovalService._resume_workflow(approval.thread_id, {"action": "approve", "reason": reason})
+        if result_state:
+            setattr(approval, "final_response", result_state.get("final_response"))
         
         return approval
 
@@ -96,12 +98,14 @@ class ApprovalService:
         await db.refresh(approval)
 
         # Resume LangGraph Workflow
-        await ApprovalService._resume_workflow(approval.thread_id, {"action": "reject", "reason": reason})
+        result_state = await ApprovalService._resume_workflow(approval.thread_id, {"action": "reject", "reason": reason})
+        if result_state:
+            setattr(approval, "final_response", result_state.get("final_response"))
 
         return approval
 
     @staticmethod
-    async def _resume_workflow(thread_id: str, resume_data: dict) -> None:
+    async def _resume_workflow(thread_id: str, resume_data: dict) -> dict:
         """Resume the LangGraph workflow given the thread_id and resume data."""
         config = {"configurable": {"thread_id": thread_id}}
         
@@ -112,4 +116,4 @@ class ApprovalService:
             
             # Send the command to resume the graph
             # This executes the graph until completion or another interruption
-            await graph.ainvoke(Command(resume=resume_data), config)
+            return await graph.ainvoke(Command(resume=resume_data), config)
