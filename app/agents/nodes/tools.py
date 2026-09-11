@@ -166,6 +166,42 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
+                elif "campaign" in description_lower:
+                    if not state.user_id:
+                        raise ToolExecutionError(
+                            "Cannot create campaign: no user_id on the agent state.",
+                            retryable=False,
+                        )
+
+                    from app.services.campaign_service import CampaignService
+                    from app.schemas.campaign import CampaignCreate
+
+                    async def run_create_campaign():
+                        campaign_in = CampaignCreate(
+                            user_id=state.user_id,
+                            name=state.product or state.campaign_goal or "Untitled Campaign",
+                            description=(state.generated_content.body if state.generated_content else state.strategy) or "",
+                            target_audience=state.target_audience,
+                        )
+                        async with AsyncSessionLocal() as db:
+                            campaign = await CampaignService.create_campaign(db, campaign_in)
+                            return {"campaign_id": campaign.id, "name": campaign.name}
+
+                    result = await retry_operation(
+                        operation=run_create_campaign,
+                        max_attempts=3,
+                        operation_name="create_campaign",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="create_campaign",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
                 else:
                     new_tool_results.append(
                         ToolResult(
