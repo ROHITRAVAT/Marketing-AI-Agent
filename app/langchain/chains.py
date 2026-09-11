@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from app.langchain.llm import ChatOllama, get_chat_model
 from app.langchain.parsers import JSON_OUTPUT_PARSER, TEXT_OUTPUT_PARSER
 from app.langchain.prompts import (
+    CAMPAIGN_GENERATOR_PROMPT,
     CAMPAIGN_STRATEGY_PROMPT,
     CONTENT_GENERATION_PROMPT,
     SOCIAL_MEDIA_PROMPT,
@@ -72,3 +73,8 @@ def build_hashtag_chain(model: ChatOllama | None = None) -> Any:
     """Structured chain for generating hashtags."""
     from app.langchain.schemas import HashtagOutput
     return build_structured_chain(schema=HashtagOutput, prompt=HASHTAG_GENERATOR_PROMPT, model=model)
+
+def build_campaign_generator_chain(model: ChatOllama | None = None) -> Any:
+    """Structured chain for generating a complete campaign plan."""
+    from app.langchain.schemas import CampaignStrategyOutput
+    return build_structured_chain(schema=CampaignStrategyOutput, prompt=CAMPAIGN_GENERATOR_PROMPT, model=model)

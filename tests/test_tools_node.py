@@ -105,3 +105,29 @@ async def test_execute_tools_dispatches_hashtag_step():
 
     assert result["tool_results"][0].tool_name == "hashtag_generation"
     assert result["tool_results"][0].status == ToolExecutionStatus.SUCCESS
+
+@pytest.mark.asyncio
+async def test_execute_tools_dispatches_campaign_generator_before_db_create():
+    from app.agents.schemas import PlanStep
+    from app.agents.state import MarketingAgentState
+    from app.agents.enums import ToolExecutionStatus
+    from app.langchain.schemas import CampaignStrategyOutput
+
+    state = MarketingAgentState(
+        user_input="Create a campaign",
+        product="Awesome Shoes",
+        target_audience="Runners",
+        campaign_goal="Increase sign-ups",
+        plan=[PlanStep(step_id="1", description="Generate a complete campaign plan")],
+    )
+
+    mock_chain = AsyncMock()
+    mock_chain.ainvoke.return_value = CampaignStrategyOutput(
+        target_audience="Runners", key_messages=["Fast"], channels=["Instagram"], success_metrics=["CTR"]
+    )
+
+    with patch("app.agents.nodes.tools.build_campaign_generator_chain", return_value=mock_chain):
+        result = await execute_tools(state)
+
+    assert result["tool_results"][0].tool_name == "campaign_generator"
+    assert result["tool_results"][0].status == ToolExecutionStatus.SUCCESS

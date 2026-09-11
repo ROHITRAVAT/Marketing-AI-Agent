@@ -8,6 +8,7 @@ from app.langchain.chains import (
     build_ads_chain,
     build_email_marketing_chain,
     build_hashtag_chain,
+    build_campaign_generator_chain,
 )
 from app.database.connection import AsyncSessionLocal
 from app.models.approval import ApprovalRequest
@@ -167,6 +168,32 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
+                elif "generate" in description_lower and "campaign" in description_lower:
+                    chain = build_campaign_generator_chain()
+
+                    async def run_campaign_generator():
+                        return await chain.ainvoke({
+                            "campaign_goal": state.campaign_goal or "",
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "platform": state.platform or "",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_campaign_generator,
+                        max_attempts=3,
+                        operation_name="campaign_generator",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="campaign_generator",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
+                        )
+                    )
+
                 elif "campaign" in description_lower:
                     if not state.user_id:
                         raise ToolExecutionError(
@@ -228,6 +255,8 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                             data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
                         )
                     )
+
+
 
                 else:
                     new_tool_results.append(

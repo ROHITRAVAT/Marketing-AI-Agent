@@ -149,3 +149,19 @@ HASHTAG_GENERATOR_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ]
 )
+
+CAMPAIGN_GENERATOR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a senior marketing strategist. Produce a complete, structured campaign plan "
+            "with clear audience targeting, messaging, channels, and success metrics.",
+        ),
+        (
+            "human",
+            "Campaign objective: {campaign_goal}\nProduct/Service: {product}\n"
+            "Target Audience: {target_audience}\nPlatform: {platform}\n\n"
+            "Generate the complete campaign now:",
+        ),
+    ]
+)
