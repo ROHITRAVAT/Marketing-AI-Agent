@@ -564,6 +564,28 @@ Real issues hit during development — documented so they don't cost anyone else
 ```bash
    docker compose exec ollama ollama pull qwen3:8b
    docker compose exec ollama ollama pull all-minilm
+
+10. **Unrelated projects on the same machine can silently steal ports 5432/8000.**
+    A separate, unrelated project (`job-automation-system`) has repeatedly been found
+    running its own Postgres/backend containers on the same ports this project needs,
+    causing confusing bind failures (`port is already allocated`) that look like a bug
+    in this project but aren't. Check for stray containers from other projects:
+```bash
+    docker ps
+```
+    If any unrelated containers show up using ports 5432 or 8000, stop them:
+```bash
+    docker stop <container-name>
+```
+
+11. **Never start the `frontend` service alone — it needs `backend` already running.**
+    The frontend's nginx config proxies to a service literally named `backend`, and nginx
+    resolves that hostname once at container startup. If `backend` isn't up yet, nginx
+    crashes immediately (`host not found in upstream "backend"`) and the container exits.
+    Always bring up the full stack together, not services in isolation:
+```bash
+    docker compose up -d
+```
 ```
 
 ## License
