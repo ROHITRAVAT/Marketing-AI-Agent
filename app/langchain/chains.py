@@ -14,6 +14,7 @@ from app.langchain.prompts import (
     SEO_OPTIMIZATION_PROMPT,
     ADS_PROMPT,
     EMAIL_MARKETING_PROMPT,
+    HASHTAG_GENERATOR_PROMPT,
 )
 
 def build_ads_chain(model: ChatOllama | None = None) -> Any:
@@ -66,3 +67,8 @@ def build_social_media_chain(model: ChatOllama | None = None) -> Any:
     """Convenience chain for generating social media copy."""
 
     return build_text_chain(prompt=SOCIAL_MEDIA_PROMPT, model=model)
+
+def build_hashtag_chain(model: ChatOllama | None = None) -> Any:
+    """Structured chain for generating hashtags."""
+    from app.langchain.schemas import HashtagOutput
+    return build_structured_chain(schema=HashtagOutput, prompt=HASHTAG_GENERATOR_PROMPT, model=model)

@@ -82,3 +82,26 @@ async def test_execute_tools_empty_plan_returns_empty_results():
     state = MarketingAgentState(user_input="Create a campaign")
     result = await execute_tools(state)
     assert result["tool_results"] == []
+
+@pytest.mark.asyncio
+async def test_execute_tools_dispatches_hashtag_step():
+    from app.agents.schemas import PlanStep
+    from app.agents.state import MarketingAgentState
+    from app.agents.enums import ToolExecutionStatus
+    from app.langchain.schemas import HashtagOutput
+
+    state = MarketingAgentState(
+        user_input="Create a campaign",
+        product="Awesome Shoes",
+        platform="Instagram",
+        plan=[PlanStep(step_id="1", description="Generate hashtags for the post")],
+    )
+
+    mock_chain = AsyncMock()
+    mock_chain.ainvoke.return_value = HashtagOutput(hashtags=["#running", "#shoes"])
+
+    with patch("app.agents.nodes.tools.build_hashtag_chain", return_value=mock_chain):
+        result = await execute_tools(state)
+
+    assert result["tool_results"][0].tool_name == "hashtag_generation"
+    assert result["tool_results"][0].status == ToolExecutionStatus.SUCCESS

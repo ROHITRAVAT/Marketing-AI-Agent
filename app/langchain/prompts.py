@@ -134,3 +134,18 @@ EMAIL_MARKETING_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ]
 )
+
+HASHTAG_GENERATOR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a social media hashtag strategist. Generate relevant, high-reach hashtags "
+            "tailored to the platform and industry, mixing broad and niche tags for discoverability.",
+        ),
+        (
+            "human",
+            "Platform: {platform}\nIndustry: {industry}\nTopic/Product: {product}\n"
+            "Number of hashtags: {count}\n\nGenerate the hashtags now:",
+        ),
+    ]
+)

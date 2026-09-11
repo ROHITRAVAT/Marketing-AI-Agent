@@ -15,3 +15,8 @@ class ContentOutput(BaseModel):
     body_copy: str = Field(description="The main body text of the content.")
     call_to_action: str = Field(description="The call to action phrase.")
     hashtags: Optional[List[str]] = Field(None, description="Relevant hashtags.")
+
+class HashtagOutput(BaseModel):
+    """Structured output for generated hashtags."""
+    hashtags: List[str] = Field(description="Optimized hashtags for the given platform and industry.")
+    trending_note: Optional[str] = Field(None, description="Brief note on trending or high-reach tags, if any.")

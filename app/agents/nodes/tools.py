@@ -3,10 +3,11 @@ from app.agents.utils.errors import handle_node_error
 from app.agents.enums import ToolExecutionStatus
 from app.agents.schemas import ToolResult, ErrorInfo
 from app.langchain.chains import (
-    build_seo_chain, 
+    build_seo_chain,
     build_social_media_chain,
     build_ads_chain,
-    build_email_marketing_chain
+    build_email_marketing_chain,
+    build_hashtag_chain,
 )
 from app.database.connection import AsyncSessionLocal
 from app.models.approval import ApprovalRequest
@@ -199,6 +200,32 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                             status=ToolExecutionStatus.SUCCESS,
                             idempotency_key=idempotency_key,
                             data={"output": result},
+                        )
+                    )
+
+                elif "hashtag" in description_lower:
+                    chain = build_hashtag_chain()
+
+                    async def run_hashtags():
+                        return await chain.ainvoke({
+                            "platform": state.platform or "general",
+                            "industry": state.target_audience or "",
+                            "product": state.product or "",
+                            "count": "10",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_hashtags,
+                        max_attempts=3,
+                        operation_name="hashtag_generation",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="hashtag_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
                         )
                     )
 
