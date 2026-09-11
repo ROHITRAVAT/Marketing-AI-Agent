@@ -587,6 +587,20 @@ Real issues hit during development — documented so they don't cost anyone else
     docker compose up -d
 ```
 ```
+12. **The frontend Docker image also needs rebuilding after pulling new code — not just backend.**
+    Same root cause as gotcha #5. `docker compose up -d` alone does not rebuild images;
+    a frontend container running for days can silently serve an old, stale JS bundle
+    even after `git pull` brings in real new pages/routing. Symptom: the page loads
+    without errors but shows old/placeholder content regardless of which URL you visit,
+    since the whole app (including routing) is baked into that one stale bundle.
+    Always rebuild after pulling frontend changes:
+```bash
+    docker compose up -d --build frontend
+```
+    When in doubt, just rebuild everything:
+```bash
+    docker compose up -d --build
+```
 
 ## License
 
