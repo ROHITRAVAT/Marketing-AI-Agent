@@ -602,6 +602,21 @@ Real issues hit during development — documented so they don't cost anyone else
     docker compose up -d --build
 ```
 
+13. **`.env` values can silently revert between sessions — check them first when something
+    that worked before suddenly doesn't.** This has now happened twice: `OLLAMA_MODEL` reset
+    to empty, and separately `DATABASE_URL` reverted to using `localhost` instead of `postgres`
+    (which only works from the host, never from inside a container — causes
+    `[Errno -2] Name or service not known` errors specifically from libraries that read
+    `DATABASE_URL` directly, like the LangGraph checkpointer, even while other services like
+    Qdrant work fine). Root cause unconfirmed, but before deep-diving into a "sudden" failure,
+    always sanity-check the relevant `.env` value first:
+```bash
+    Get-Content .env | Select-String -Pattern "DATABASE_URL|OLLAMA_MODEL|OLLAMA_EMBEDDING_MODEL"
+```
+    Expected values: `DATABASE_URL` must use `@postgres:5432` (not `@localhost`) for anything
+    running inside Docker. `OLLAMA_MODEL=qwen3:8b`, `OLLAMA_EMBEDDING_MODEL=all-minilm`.
+
+
 ## License
 
 _Not specified yet._
