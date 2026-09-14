@@ -9,7 +9,9 @@ from app.langchain.llm import ChatOllama, get_chat_model
 from app.langchain.parsers import JSON_OUTPUT_PARSER, TEXT_OUTPUT_PARSER
 from app.langchain.prompts import (
     CAMPAIGN_GENERATOR_PROMPT,
+    CAMPAIGN_OPTIMIZATION_PROMPT,
     CAMPAIGN_STRATEGY_PROMPT,
+    CONTENT_CALENDAR_PROMPT,
     CONTENT_GENERATION_PROMPT,
     SOCIAL_MEDIA_PROMPT,
     SEO_OPTIMIZATION_PROMPT,
@@ -78,3 +80,13 @@ def build_campaign_generator_chain(model: ChatOllama | None = None) -> Any:
     """Structured chain for generating a complete campaign plan."""
     from app.langchain.schemas import CampaignStrategyOutput
     return build_structured_chain(schema=CampaignStrategyOutput, prompt=CAMPAIGN_GENERATOR_PROMPT, model=model)
+
+def build_content_calendar_chain(model: ChatOllama | None = None) -> Any:
+    """Structured chain for generating a content publishing calendar."""
+    from app.langchain.schemas import ContentCalendarOutput
+    return build_structured_chain(schema=ContentCalendarOutput, prompt=CONTENT_CALENDAR_PROMPT, model=model)
+
+def build_campaign_optimization_chain(model: ChatOllama | None = None) -> Any:
+    """Structured chain for analyzing and optimizing an existing campaign."""
+    from app.langchain.schemas import CampaignOptimizationOutput
+    return build_structured_chain(schema=CampaignOptimizationOutput, prompt=CAMPAIGN_OPTIMIZATION_PROMPT, model=model)
