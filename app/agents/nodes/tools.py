@@ -9,6 +9,8 @@ from app.langchain.chains import (
     build_email_marketing_chain,
     build_hashtag_chain,
     build_campaign_generator_chain,
+    build_content_calendar_chain,
+    build_campaign_optimization_chain,
 )
 from app.database.connection import AsyncSessionLocal
 from app.models.approval import ApprovalRequest
@@ -75,7 +77,10 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
-                elif "social" in description_lower:
+                elif any(
+                    keyword in description_lower
+                    for keyword in ["social", "linkedin", "facebook", "instagram", "twitter", " x post", "x.com"]
+                ):
                     # Verification checkpoint: ensure approval
                     if state.approval_required:
                         if not state.approval_request_id:
@@ -96,8 +101,12 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                             "post_count": "3",
                             "platform": state.platform or "",
                             "brief": state.user_input,
+                            "strategy": state.strategy or "",
                             "audience": state.target_audience or "",
                             "goal": state.campaign_goal or "",
+                            "retrieved_context": "\n\n".join(
+                                doc.content for doc in state.retrieved_documents
+                            ) if state.retrieved_documents else "No additional knowledge retrieved.",
                         })
 
                     result = await retry_operation(
@@ -162,6 +171,49 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                     new_tool_results.append(
                         ToolResult(
                             tool_name="email_marketing_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "optimiz" in description_lower:
+                    if not state.campaign_id:
+                        raise ToolExecutionError(
+                            "Cannot optimize campaign: no campaign_id on the agent state.",
+                            retryable=False,
+                        )
+
+                    from app.services.campaign_service import CampaignService
+
+                    async def run_campaign_optimization():
+                        async with AsyncSessionLocal() as db:
+                            campaign = await CampaignService.get_campaign(db, state.campaign_id)
+                            if not campaign:
+                                raise ToolExecutionError(
+                                    f"Campaign {state.campaign_id} not found.",
+                                    retryable=False,
+                                )
+
+                            chain = build_campaign_optimization_chain()
+                            analysis = await chain.ainvoke({
+                                "campaign_name": campaign.name,
+                                "description": campaign.description or "",
+                                "target_audience": campaign.target_audience or "",
+                                "status": campaign.status,
+                                "budget": str(campaign.budget) if campaign.budget else "Not specified",
+                            })
+                            return analysis.model_dump() if hasattr(analysis, "model_dump") else analysis
+
+                    result = await retry_operation(
+                        operation=run_campaign_optimization,
+                        max_attempts=3,
+                        operation_name="campaign_optimization",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="campaign_optimization",
                             status=ToolExecutionStatus.SUCCESS,
                             idempotency_key=idempotency_key,
                             data={"output": result},
@@ -256,7 +308,32 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
+                elif "calendar" in description_lower or "schedule" in description_lower:
+                    chain = build_content_calendar_chain()
 
+                    async def run_calendar():
+                        return await chain.ainvoke({
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "platform": state.platform or "",
+                            "campaign_goal": state.campaign_goal or "",
+                            "timeframe": "weekly",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_calendar,
+                        max_attempts=3,
+                        operation_name="content_calendar",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="content_calendar",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
+                        )
+                    )
 
                 else:
                     new_tool_results.append(
