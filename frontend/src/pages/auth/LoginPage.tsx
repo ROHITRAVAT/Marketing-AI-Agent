@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { loginSchema, type LoginFormData } from '@/utils/validators';
 import { authService } from '@/services/authService';
@@ -11,11 +11,8 @@ import { Button } from '@/components/ui/Button';
 
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { setAuth } = useAuthStore();
+  const { setAuth, setLoading } = useAuthStore();
   const [serverError, setServerError] = useState<string | null>(null);
-
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/';
 
   const {
     register,
@@ -57,12 +54,13 @@ export const LoginPage: React.FC = () => {
           },
           tokenResponse.access_token
         );
+        setLoading(false);
       } catch {
         localStorage.removeItem('auth_token');
         throw new Error('Unable to load your profile. Please try again.');
       }
 
-      navigate(from, { replace: true });
+      navigate('/', { replace: true });
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { detail?: string } } };

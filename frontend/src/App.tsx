@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { MainLayout } from '@/layouts/MainLayout';
@@ -12,8 +13,44 @@ import { AnalyticsPage } from '@/pages/analytics/AnalyticsPage';
 import { SettingsPage } from '@/pages/settings/SettingsPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { ProtectedRoute } from '@/components/common/ProtectedRoute';
+import { authService } from '@/services/authService';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export function App() {
+  const { token, user, setUser, setLoading, logout } = useAuthStore();
+
+  useEffect(() => {
+    if (!token || user) return;
+
+    let isMounted = true;
+    setLoading(true);
+    authService.getProfile()
+      .then((profile) => {
+        if (isMounted && useAuthStore.getState().token === token && !useAuthStore.getState().user) {
+          setUser({
+            id: profile.user_id,
+            email: profile.email,
+            username: profile.username,
+            full_name: profile.full_name,
+            role: profile.role as 'admin' | 'manager' | 'user',
+            is_active: true,
+            is_verified: true,
+          });
+        }
+      })
+      .catch(() => {
+        if (isMounted && useAuthStore.getState().token === token && !useAuthStore.getState().user) logout();
+      })
+      .finally(() => {
+        if (isMounted && useAuthStore.getState().token === token) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [logout, setLoading, setUser, token, user]);
+
   return (
     <Router>
       <Routes>
@@ -26,13 +63,19 @@ export function App() {
         </Route>
 
         {/* Main Application routes */}
-        <Route element={<MainLayout />}>
+        <Route element={<ProtectedRoute />}>
+          <Route element={<MainLayout />}>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/chat" element={<ChatPage />} />
           <Route path="/campaigns" element={<CampaignsPage />} />
-          <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'manager']} />}>
+            <Route path="/analytics" element={<AnalyticsPage />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
+          </Route>
         </Route>
 
         {/* 404 & Fallback */}

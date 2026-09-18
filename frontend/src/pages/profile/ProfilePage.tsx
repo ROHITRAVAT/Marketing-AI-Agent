@@ -99,6 +99,15 @@ export const ProfilePage: React.FC = () => {
 
           <form onSubmit={handleSaveProfile} className="space-y-4 max-w-xl">
             <Input
+              label="User ID"
+              type="text"
+              value={user?.id?.toString() || ''}
+              disabled
+              helperText="System-generated account identifier."
+              icon={<Shield className="w-4 h-4" />}
+            />
+
+            <Input
               label="Email Address"
               type="email"
               value={user?.email || ''}

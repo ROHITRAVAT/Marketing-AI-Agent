@@ -1,15 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
-
-/**
- * Centralized gate for mock fallbacks.
- * In production or normal development, this is false, ensuring real backend errors
- * are surfaced rather than deceptive fabricated successes.
- * To enable local offline mock simulation during isolated dev work, set VITE_ENABLE_DEV_FALLBACK=true in .env.
- */
-export const IS_DEV_FALLBACK_ENABLED =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEV_FALLBACK === 'true';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

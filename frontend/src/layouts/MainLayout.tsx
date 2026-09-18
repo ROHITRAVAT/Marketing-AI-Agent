@@ -18,12 +18,12 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/utils/cn';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'AI Copilot Chat', path: '/chat', icon: MessageSquare },
-  { name: 'Campaigns', path: '/campaigns', icon: Megaphone },
-  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { name: 'Integrations & Settings', path: '/settings', icon: SlidersHorizontal },
-  { name: 'User Profile', path: '/profile', icon: UserCircle },
+  { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'user'] },
+  { name: 'AI Copilot Chat', path: '/chat', icon: MessageSquare, roles: ['admin', 'manager', 'user'] },
+  { name: 'Campaigns', path: '/campaigns', icon: Megaphone, roles: ['admin', 'manager', 'user'] },
+  { name: 'Analytics', path: '/analytics', icon: BarChart3, roles: ['admin', 'manager'] },
+  { name: 'Integrations & Settings', path: '/settings', icon: SlidersHorizontal, roles: ['admin'] },
+  { name: 'User Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'manager', 'user'] },
 ];
 
 export const MainLayout: React.FC = () => {
@@ -72,7 +72,7 @@ export const MainLayout: React.FC = () => {
 
         {/* Navigation Links */}
         <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.filter((item) => user && item.roles.includes(user.role)).map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
 
@@ -121,6 +121,9 @@ export const MainLayout: React.FC = () => {
                     {user?.role?.toUpperCase() || 'MEMBER'}
                   </span>
                 </div>
+                <p className="text-[10px] text-[#71717A] font-mono mt-0.5">
+                  User ID: {user?.id ?? 'Unavailable'}
+                </p>
               </div>
             </NavLink>
             <button
