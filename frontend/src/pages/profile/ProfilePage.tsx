@@ -25,74 +25,74 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 text-[#18181B]">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">Profile Management</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-3xl sm:text-4xl font-serif tracking-tight text-[#18181B]">Profile Management</h2>
+        <p className="text-sm text-[#71717A] mt-1">
           Manage your personal information, role permissions, and security settings.
         </p>
       </div>
 
       {/* User Summary Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xl">
+      <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 shadow-xs">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-[#18181B] text-white flex items-center justify-center font-bold text-2xl shadow-xs">
             {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h3 className="text-lg font-semibold text-white">
+              <h3 className="text-lg font-bold text-[#18181B]">
                 {user?.full_name || user?.username || user?.email || 'Authenticated User'}
               </h3>
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 capitalize">
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono uppercase font-semibold bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
                 {user?.role || 'user'}
               </span>
             </div>
-            <p className="text-sm text-slate-400 flex items-center gap-1.5 mt-0.5">
-              <Mail className="w-3.5 h-3.5" />
+            <p className="text-xs text-[#71717A] flex items-center gap-1.5 mt-0.5">
+              <Mail className="w-3.5 h-3.5 text-[#A1A1AA]" />
               {user?.email || 'user@company.com'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <CheckCircle className="w-3.5 h-3.5" />
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono uppercase font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <CheckCircle className="w-3 h-3 text-emerald-600" />
             Active Account
           </span>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-slate-800 flex gap-6">
+      <div className="border-b border-[#E8E8E3] flex gap-6">
         <button
           onClick={() => setActiveTab('details')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+          className={`pb-3 text-xs sm:text-sm font-semibold transition-all border-b-2 ${
             activeTab === 'details'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#18181B] text-[#18181B]'
+              : 'border-transparent text-[#71717A] hover:text-[#18181B]'
           }`}
         >
           Account Details
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 ${
+          className={`pb-3 text-xs sm:text-sm font-semibold transition-all border-b-2 ${
             activeTab === 'security'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#18181B] text-[#18181B]'
+              : 'border-transparent text-[#71717A] hover:text-[#18181B]'
           }`}
         >
-          Security & Roles
+          Security &amp; Roles
         </button>
       </div>
 
       {activeTab === 'details' ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
           {isSaved && (
-            <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-3.5 flex items-center gap-2.5 text-emerald-300 text-sm">
-              <CheckCircle className="w-4 h-4" />
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-3.5 flex items-center gap-2.5 text-emerald-800 text-xs font-semibold shadow-xs">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
               Profile updated successfully.
             </div>
           )}
@@ -128,32 +128,32 @@ export const ProfilePage: React.FC = () => {
             <Button
               type="submit"
               className="mt-2"
-              icon={<Save className="w-4 h-4 mr-1.5" />}
+              icon={<Save className="w-4 h-4 text-amber-400 mr-1.5" />}
             >
               Save Changes
             </Button>
           </form>
         </div>
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
           <div>
-            <h4 className="text-base font-semibold text-white">Role & Permissions</h4>
-            <p className="text-xs text-slate-400 mt-1">
+            <h4 className="text-base font-bold text-[#18181B]">Role &amp; Permissions</h4>
+            <p className="text-xs text-[#71717A] mt-1">
               Your account role determines access to AI marketing tools and campaign publishing.
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 space-y-3">
+          <div className="rounded-xl border border-[#E8E8E3] bg-[#F8F8F6] p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-indigo-400" />
-                <span className="text-sm font-medium text-slate-200">Current Role</span>
+                <Shield className="w-4 h-4 text-[#18181B]" />
+                <span className="text-xs font-bold text-[#18181B]">Current Role</span>
               </div>
-              <span className="text-xs font-semibold uppercase px-2.5 py-1 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[10px] font-mono uppercase font-semibold px-2.5 py-1 rounded bg-white text-[#18181B] border border-[#E4E4DC]">
                 {user?.role || 'user'}
               </span>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-[#71717A] leading-relaxed">
               {user?.role === 'admin'
                 ? 'Full system privileges: campaign creation, agent configuration, user management.'
                 : user?.role === 'manager'
@@ -162,18 +162,18 @@ export const ProfilePage: React.FC = () => {
             </p>
           </div>
 
-          <div className="border-t border-slate-800 pt-6">
-            <h4 className="text-base font-semibold text-white">Password & Authentication</h4>
-            <p className="text-xs text-slate-400 mt-1">
+          <div className="border-t border-[#F2F2ED] pt-6">
+            <h4 className="text-base font-bold text-[#18181B]">Password &amp; Authentication</h4>
+            <p className="text-xs text-[#71717A] mt-1">
               Manage your password or request a secure reset.
             </p>
 
             <div className="mt-4">
               <a
                 href="/forgot-password"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-sm font-medium transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-[#F3F3EE] text-[#18181B] border border-[#E4E4DC] text-xs font-semibold shadow-xs transition-colors"
               >
-                <KeyRound className="w-4 h-4 text-indigo-400" />
+                <KeyRound className="w-4 h-4 text-[#71717A]" />
                 Request Password Reset Token
               </a>
             </div>

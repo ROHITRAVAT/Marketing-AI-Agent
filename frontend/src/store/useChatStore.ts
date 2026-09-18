@@ -94,11 +94,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
         isTyping: false,
         pendingApproval: response.approval_required ? { id: response.approval_request_id!, messageId } : null,
       }));
-    } catch (error) {
+    } catch (err: unknown) {
+      const error = err as { code?: string; response?: { data?: { detail?: string } } };
+      const isNetworkError = error?.code === 'ERR_NETWORK' || !error?.response;
+      const content = isNetworkError
+        ? 'Unable to connect to server. Please try again.'
+        : (error?.response?.data?.detail || "Unable to process your request. Please try again.");
+
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'agent',
-        content: "Unable to process your request. Please try again.",
+        content,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       set((state) => ({

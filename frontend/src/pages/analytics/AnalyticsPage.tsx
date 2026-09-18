@@ -70,27 +70,27 @@ export const AnalyticsPage: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-[#18181B]">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white">Marketing Analytics</h2>
-          <p className="text-sm text-slate-400">
+          <h2 className="text-3xl sm:text-4xl font-serif tracking-tight text-[#18181B]">Marketing Analytics</h2>
+          <p className="text-sm text-[#71717A] mt-1">
             Real-time campaign performance metrics, conversions, and multi-channel attribution.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Time Range Selector */}
-          <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 text-xs font-semibold">
+          <div className="flex bg-[#F3F3EE] border border-[#E4E4DC] rounded-xl p-1 text-xs font-semibold">
             {(['7d', '30d', '90d'] as const).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-3 py-1.5 rounded-lg transition-colors uppercase ${
+                className={`px-3 py-1.5 rounded-lg transition-all uppercase font-mono text-[11px] ${
                   timeRange === range
-                    ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-[#18181B] text-white shadow-xs'
+                    : 'text-[#71717A] hover:text-[#18181B]'
                 }`}
               >
                 {range}
@@ -99,9 +99,9 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           <Button
-            variant="outline"
+            variant="secondary"
             onClick={handleExport}
-            icon={<Download className="w-4 h-4" />}
+            icon={<Download className="w-4 h-4 text-[#71717A]" />}
           >
             {downloadSuccess ? 'Exported CSV' : 'Export Report'}
           </Button>
@@ -110,128 +110,138 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* KPI Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
             <span>Total Impressions</span>
-            <Eye className="w-4 h-4 text-indigo-400" />
+            <div className="w-8 h-8 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-[#18181B]">
+              <Eye className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">184.2K</span>
-            <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +24.8%
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tracking-tight text-[#18181B]">184.2K</span>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
+              <ArrowUpRight className="w-3 h-3" /> +24.8%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">vs 147.6K in prior period</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">vs 147.6K in prior period</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
             <span>Clicks & Visits</span>
-            <MousePointer className="w-4 h-4 text-purple-400" />
+            <div className="w-8 h-8 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-[#18181B]">
+              <MousePointer className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">9,420</span>
-            <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +16.2%
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tracking-tight text-[#18181B]">9,420</span>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
+              <ArrowUpRight className="w-3 h-3" /> +16.2%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">Average CTR: 5.1%</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Average CTR: 5.1%</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
             <span>Qualified Leads</span>
-            <Users className="w-4 h-4 text-emerald-400" />
+            <div className="w-8 h-8 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-emerald-700">
+              <Users className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">642</span>
-            <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +31.5%
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tracking-tight text-[#18181B]">642</span>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
+              <ArrowUpRight className="w-3 h-3" /> +31.5%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">Cost per Lead: $14.20</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Cost per Lead: $14.20</p>
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
             <span>Return on Ad Spend</span>
-            <DollarSign className="w-4 h-4 text-amber-400" />
+            <div className="w-8 h-8 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-amber-700">
+              <DollarSign className="w-4 h-4" />
+            </div>
           </div>
-          <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">4.2x</span>
-            <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +0.6x
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-bold tracking-tight text-[#18181B]">4.2x</span>
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
+              <ArrowUpRight className="w-3 h-3" /> +0.6x
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">Target benchmark: 3.5x</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Target benchmark: 3.5x</p>
         </div>
       </div>
 
       {/* Visual Analytics Row: Performance Trend & Channels */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Performance Trend Chart (2 Cols) */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div className="lg:col-span-2 bg-white border border-[#E8E8E3] rounded-2xl p-6 space-y-6 shadow-xs">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">Engagement Trend</h3>
-              <p className="text-xs text-slate-400">Daily organic and paid interactions over selected timeframe</p>
+              <h3 className="text-base font-bold text-[#18181B]">Engagement Trend</h3>
+              <p className="text-xs text-[#71717A]">Daily organic and paid interactions over selected timeframe</p>
             </div>
             <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 inline-block" /> Impressions
+              <span className="flex items-center gap-1.5 text-[#52525B]">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#18181B] inline-block" /> Impressions
               </span>
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" /> Clicks
+              <span className="flex items-center gap-1.5 text-[#52525B]">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" /> Clicks
               </span>
             </div>
           </div>
 
           {/* SVG Line / Bar Chart Simulation */}
-          <div className="h-56 flex items-end justify-between gap-2 pt-6 border-b border-slate-800 pb-2">
+          <div className="h-56 flex items-end justify-between gap-2 pt-6 border-b border-[#F2F2ED] pb-2">
             {[45, 62, 58, 78, 85, 92, 88, 95, 110, 105, 125, 140].map((val, idx) => (
               <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 group">
                 <div className="w-full flex justify-center gap-1 items-end h-44">
                   {/* Impressions bar */}
                   <div
                     style={{ height: `${(val / 140) * 100}%` }}
-                    className="w-full max-w-[14px] bg-indigo-600/80 hover:bg-indigo-500 rounded-t transition-all"
+                    className="w-full max-w-[14px] bg-[#18181B] hover:bg-[#27272A] rounded-t transition-all"
                   />
                   {/* Clicks bar */}
                   <div
                     style={{ height: `${(val / 140) * 35}%` }}
-                    className="w-full max-w-[14px] bg-emerald-500/80 hover:bg-emerald-400 rounded-t transition-all"
+                    className="w-full max-w-[14px] bg-emerald-600 hover:bg-emerald-500 rounded-t transition-all"
                   />
                 </div>
-                <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors">
+                <span className="text-[10px] font-mono text-[#A1A1AA] group-hover:text-[#18181B] transition-colors">
                   W{idx + 1}
                 </span>
               </div>
             ))}
           </div>
 
-          <div className="flex items-center justify-between text-xs text-slate-400">
+          <div className="flex items-center justify-between text-xs text-[#71717A]">
             <span>Peak performance: Week 12 (+140k impressions)</span>
-            <span className="text-emerald-400 font-medium">Consistently outperforming baseline</span>
+            <span className="text-emerald-700 font-semibold">Consistently outperforming baseline</span>
           </div>
         </div>
 
         {/* Channel Distribution Breakdown (1 Col) */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 space-y-6 shadow-xs">
           <div>
-            <h3 className="text-base font-bold text-white">Channel Attribution</h3>
-            <p className="text-xs text-slate-400">Audience distribution across social networks</p>
+            <h3 className="text-base font-bold text-[#18181B]">Channel Attribution</h3>
+            <p className="text-xs text-[#71717A]">Audience distribution across social networks</p>
           </div>
 
           <div className="space-y-4 pt-1">
             {channelMetrics.map((ch) => (
               <div key={ch.name} className="space-y-1.5">
                 <div className="flex justify-between text-xs font-medium">
-                  <span className="text-slate-200">{ch.name}</span>
-                  <span className="text-slate-400">{ch.reach} ({ch.percentage}%)</span>
+                  <span className="text-[#18181B] font-semibold">{ch.name}</span>
+                  <span className="text-[#71717A] font-mono">{ch.reach} ({ch.percentage}%)</span>
                 </div>
-                <div className="w-full bg-slate-800 rounded-full h-2.5">
+                <div className="w-full bg-[#F3F3EE] rounded-full h-2">
                   <div
-                    className={`${ch.color} h-2.5 rounded-full transition-all duration-500`}
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      ch.name === 'LinkedIn' ? 'bg-[#18181B]' : ch.name.includes('Twitter') ? 'bg-amber-600' : 'bg-emerald-600'
+                    }`}
                     style={{ width: `${ch.percentage}%` }}
                   />
                 </div>
@@ -239,11 +249,11 @@ export const AnalyticsPage: React.FC = () => {
             ))}
           </div>
 
-          <div className="rounded-xl bg-slate-950 p-4 border border-slate-800 text-xs space-y-1">
-            <span className="text-indigo-300 font-semibold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> AI Channel Insight:
+          <div className="rounded-xl bg-[#F8F8F6] p-4 border border-[#E8E8E3] text-xs space-y-1">
+            <span className="text-[#18181B] font-semibold flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> AI Channel Insight:
             </span>
-            <p className="text-slate-400 leading-relaxed">
+            <p className="text-[#52525B] leading-relaxed">
               LinkedIn delivers our highest B2B conversion rate (6.2%), while Instagram drives the lowest cost-per-click ($0.42).
             </p>
           </div>
@@ -251,20 +261,20 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Top Performing Content Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+      <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 space-y-4 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-base font-bold text-white">Top Performing Marketing Content</h3>
-            <p className="text-xs text-slate-400">Generated posts with highest viral coefficient and click-through</p>
+            <h3 className="text-base font-bold text-[#18181B]">Top Performing Marketing Content</h3>
+            <p className="text-xs text-[#71717A]">Generated posts with highest viral coefficient and click-through</p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <span className="text-[10px] font-mono uppercase font-semibold px-2.5 py-1 rounded bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
             Ranked by Engagement
           </span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-300">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold border-b border-slate-800">
+          <table className="w-full text-left text-xs text-[#52525B]">
+            <thead className="bg-[#FBFBFA] text-[#71717A] uppercase text-[10px] font-mono font-semibold border-b border-[#E8E8E3]">
               <tr>
                 <th className="py-3 px-4">Post Topic / Content</th>
                 <th className="py-3 px-4">Platform</th>
@@ -275,20 +285,20 @@ export const AnalyticsPage: React.FC = () => {
                 <th className="py-3 px-4">Published</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-[#F2F2ED]">
               {topPosts.map((post) => (
-                <tr key={post.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4 font-medium text-white max-w-xs truncate">{post.title}</td>
+                <tr key={post.id} className="hover:bg-[#F8F8F6] transition-colors">
+                  <td className="py-3 px-4 font-medium text-[#18181B] max-w-xs truncate">{post.title}</td>
                   <td className="py-3 px-4">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-200 text-[11px] font-medium border border-slate-700">
+                    <span className="px-2 py-0.5 rounded bg-[#F3F3EE] text-[#52525B] text-[10px] font-mono border border-[#E4E4DC]">
                       {post.channel}
                     </span>
                   </td>
-                  <td className="py-3 px-4">{post.impressions}</td>
-                  <td className="py-3 px-4">{post.clicks}</td>
-                  <td className="py-3 px-4 text-indigo-300 font-semibold">{post.ctr}</td>
-                  <td className="py-3 px-4 text-emerald-400 font-semibold">{post.engagement}</td>
-                  <td className="py-3 px-4 text-slate-500">{post.date}</td>
+                  <td className="py-3 px-4 font-mono">{post.impressions}</td>
+                  <td className="py-3 px-4 font-mono">{post.clicks}</td>
+                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">{post.ctr}</td>
+                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">{post.engagement}</td>
+                  <td className="py-3 px-4 text-[#71717A]">{post.date}</td>
                 </tr>
               ))}
             </tbody>

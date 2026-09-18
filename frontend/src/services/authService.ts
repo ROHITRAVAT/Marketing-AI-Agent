@@ -1,4 +1,4 @@
-import api from './api';
+import api, { IS_DEV_FALLBACK_ENABLED } from './api';
 import type {
   User,
   UserLoginRequest,
@@ -32,9 +32,9 @@ export const authService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      // Fallback if backend server is not running
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        console.warn('Backend server offline. Using local development mock fallback.');
+      // Fallback only if dev fallback is explicitly enabled
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
+        console.warn('[DEV MOCK ACTIVE] Backend server offline. Using local development mock fallback.');
         const newUser: User = {
           id: Date.now(),
           email: data.email,
@@ -60,9 +60,8 @@ export const authService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      // Fallback if backend server is not running
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        console.warn('Backend server offline. Using local development mock fallback.');
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
+        console.warn('[DEV MOCK ACTIVE] Backend server offline. Using local development mock fallback.');
         const mockUsers = getMockUsers();
         const found = mockUsers.find((u) => u.email.toLowerCase() === data.email.toLowerCase());
 
@@ -95,7 +94,7 @@ export const authService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
         return {
           message:
             'If an account exists for this email, a password reset link has been sent. (Dev fallback token: mock-token-123)',
@@ -114,7 +113,7 @@ export const authService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
         return {
           message: 'Password reset successfully (Dev fallback simulation)',
         };
@@ -146,7 +145,7 @@ export const authService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
         try {
           const profile = JSON.parse(localStorage.getItem('dev_mock_profile') || '{}');
           if (profile.email) {

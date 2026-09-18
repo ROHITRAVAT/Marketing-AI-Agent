@@ -10,7 +10,6 @@ import {
   Menu,
   X,
   Sparkles,
-  Search,
   Bell,
   Plus,
   LogOut,
@@ -59,14 +58,9 @@ export const MainLayout: React.FC = () => {
         <div className="h-16 flex items-center justify-between px-6 border-b border-[#E8E8E3]">
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 rounded-lg bg-[#18181B] flex items-center justify-center text-white shadow-sm">
-              <Sparkles className="w-4 h-4 text-indigo-400" />
+              <Sparkles className="w-4 h-4 text-amber-400" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-base tracking-tight text-[#18181B]">Marketing AI</span>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-[#E0E0DA] bg-white text-[#71717A]">
-                v2.4
-              </span>
-            </div>
+            <span className="font-bold text-base tracking-tight text-[#18181B]">Marketing AI</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -116,21 +110,17 @@ export const MainLayout: React.FC = () => {
               className="flex items-center space-x-2.5 truncate group flex-1"
             >
               <div className="w-8 h-8 rounded-full bg-[#18181B] text-white flex items-center justify-center font-bold text-xs shadow-sm">
-                {user?.username ? user.username.charAt(0).toUpperCase() : 'R'}
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
               </div>
               <div className="truncate">
                 <div className="flex items-center gap-1.5">
                   <p className="text-xs font-bold text-[#18181B] truncate group-hover:text-indigo-600">
-                    {user?.full_name || user?.username || 'Ryan Jones'}
+                    {user?.full_name || user?.username || 'User'}
                   </p>
-                  <span className="text-[9px] font-mono uppercase px-1 py-0.2 rounded bg-[#E4E4DC] text-[#52525B] font-semibold">
-                    ADMIN
+                  <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-[#E4E4DC] text-[#52525B] font-semibold">
+                    {user?.role?.toUpperCase() || 'MEMBER'}
                   </span>
                 </div>
-                <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
-                  Workspace Active
-                </p>
               </div>
             </NavLink>
             <button
@@ -159,42 +149,26 @@ export const MainLayout: React.FC = () => {
             <div className="flex items-center gap-2 text-xs text-[#71717A]">
               <span className="italic font-serif text-[#18181B]">Marketing AI</span>
               <span>›</span>
-              <span className="font-medium text-[#52525B]">Executive Intelligence</span>
+              <span className="font-medium text-[#52525B]">Executive Workspace</span>
             </div>
-          </div>
-
-          {/* Center Search Input */}
-          <div className="hidden lg:flex items-center relative w-72">
-            <Search className="w-3.5 h-3.5 text-[#A1A1AA] absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Quick Search..."
-              className="w-full bg-[#F3F3EE] border border-[#E4E4DC] rounded-xl pl-8 pr-12 py-1.5 text-xs text-[#18181B] placeholder-[#A1A1AA] focus:outline-none focus:border-[#18181B]"
-            />
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono text-[#A1A1AA] bg-white px-1.5 py-0.5 rounded border border-[#E0E0DA]">
-              ⌘K
-            </span>
           </div>
 
           {/* Right Status & Actions */}
           <div className="flex items-center gap-3">
-            {/* AI Engine Online Pill */}
-            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-              AI Engine: Online
-            </div>
-
-            {/* Model Pill */}
+            {/* Configured model, without claiming runtime availability. */}
             <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
               <Sparkles className="w-3 h-3 text-amber-500" />
-              Qwen-2.5-72B - Active
+              Qwen3:8B
             </div>
 
-            {/* Notification Bell */}
-            <button className="relative p-2 rounded-xl text-[#71717A] hover:text-[#18181B] hover:bg-[#EFEFEA] transition-colors">
+            {/* Notification Bell (no fake persistent dot) */}
+            <NavLink
+              to="/campaigns"
+              title="Campaign alerts"
+              className="relative p-2 rounded-xl text-[#71717A] hover:text-[#18181B] hover:bg-[#EFEFEA] transition-colors"
+            >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full" />
-            </button>
+            </NavLink>
 
             {/* Primary New Campaign Button */}
             <NavLink
@@ -208,7 +182,7 @@ export const MainLayout: React.FC = () => {
             {/* User Avatar */}
             <NavLink to="/profile" className="hidden sm:block">
               <div className="w-8 h-8 rounded-full bg-[#18181B] text-white flex items-center justify-center font-bold text-xs border border-[#E4E4DC]">
-                {user?.username ? user.username.charAt(0).toUpperCase() : 'R'}
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
               </div>
             </NavLink>
           </div>

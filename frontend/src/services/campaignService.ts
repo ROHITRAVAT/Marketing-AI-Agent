@@ -1,4 +1,4 @@
-import api from './api';
+import api, { IS_DEV_FALLBACK_ENABLED } from './api';
 import type { Campaign } from '@/types';
 import type { CampaignFormData } from '@/store/useCampaignStore';
 
@@ -32,8 +32,8 @@ export const campaignService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        // Dev fallback
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
+        console.warn('[DEV MOCK ACTIVE] Backend server offline. Returning local development campaigns.');
         const local = JSON.parse(localStorage.getItem('marketing_campaigns_list') || '[]');
         return {
           items: local,
@@ -64,7 +64,8 @@ export const campaignService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
+        console.warn('[DEV MOCK ACTIVE] Backend server offline. Creating local mock campaign.');
         const fallback: Campaign = {
           id: Date.now(),
           user_id: 1,

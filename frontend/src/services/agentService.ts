@@ -1,4 +1,4 @@
-import api from './api';
+import api, { IS_DEV_FALLBACK_ENABLED } from './api';
 
 export interface AgentChatRequest {
   thread_id: string;
@@ -40,8 +40,8 @@ export const agentService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        // Fallback simulation when backend server is offline
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
+        console.warn('[DEV MOCK ACTIVE] Backend server offline. Returning local development simulation.');
         const lower = data.message.toLowerCase();
         let reply = '';
         let needsApproval = false;
@@ -78,7 +78,7 @@ export const agentService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
         return {
           id: approvalId,
           user_id: 1,
@@ -104,7 +104,7 @@ export const agentService = {
       return response.data;
     } catch (err: unknown) {
       const error = err as { code?: string; response?: unknown };
-      if (!error.response || error.code === 'ERR_NETWORK') {
+      if (IS_DEV_FALLBACK_ENABLED && (!error.response || error.code === 'ERR_NETWORK')) {
         return {
           id: approvalId,
           user_id: 1,

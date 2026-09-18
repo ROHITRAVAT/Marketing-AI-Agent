@@ -42,37 +42,37 @@ export const ForgotPasswordPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-[#18181B]">
       <div className="text-center">
-        <h3 className="text-2xl font-bold text-white tracking-tight">Forgot Password</h3>
-        <p className="text-sm text-slate-400 mt-1">
+        <h3 className="text-2xl font-serif font-bold text-[#18181B] tracking-tight">Forgot Password</h3>
+        <p className="text-xs text-[#71717A] mt-1">
           Enter your email and we&apos;ll send instructions to reset your password.
         </p>
       </div>
 
       {serverError && (
-        <div className="rounded-lg bg-rose-500/10 border border-rose-500/30 p-3.5 flex items-start gap-3 text-rose-300 text-sm">
-          <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400 mt-0.5" />
+        <div className="rounded-xl bg-rose-50 border border-rose-200 p-3.5 flex items-start gap-3 text-rose-800 text-xs font-medium">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-600 mt-0.5" />
           <span>{serverError}</span>
         </div>
       )}
 
       {successMessage ? (
         <div className="space-y-4">
-          <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-4 flex items-start gap-3 text-emerald-300 text-sm">
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400 mt-0.5" />
+          <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-start gap-3 text-emerald-800 text-xs font-medium shadow-xs">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600 mt-0.5" />
             <div>
-              <p className="font-semibold text-emerald-200">Reset Link Sent</p>
-              <p className="mt-1 text-slate-300">{successMessage}</p>
+              <p className="font-bold text-emerald-900">Reset Link Sent</p>
+              <p className="mt-1 text-[#52525B] leading-relaxed">{successMessage}</p>
             </div>
           </div>
 
           <div className="text-center pt-2">
             <Link
               to="/reset-password"
-              className="inline-flex items-center gap-1.5 text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+              className="inline-flex items-center gap-1.5 text-xs text-[#18181B] hover:underline font-semibold"
             >
-              <KeyRound className="w-3.5 h-3.5" />
+              <KeyRound className="w-3.5 h-3.5 text-amber-500" />
               Already have a reset token? Click here to set a new password
             </Link>
           </div>
@@ -94,10 +94,10 @@ export const ForgotPasswordPage: React.FC = () => {
         </form>
       )}
 
-      <div className="border-t border-slate-800 pt-5 text-center text-sm text-slate-400">
+      <div className="border-t border-[#F2F2ED] pt-5 text-center text-xs text-[#71717A]">
         <Link
           to="/login"
-          className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors font-medium"
+          className="inline-flex items-center gap-1.5 text-[#71717A] hover:text-[#18181B] transition-colors font-semibold"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to login
