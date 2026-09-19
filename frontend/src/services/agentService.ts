@@ -24,7 +24,7 @@ export interface ApprovalResponse {
   thread_id: string;
   action_type: string;
   platform: string | null;
-  content: Record<string, any>;
+  content: Record<string, unknown>;
   status: string;
   reason: string | null;
   rejection_reason: string | null;
@@ -49,3 +49,5 @@ export const agentService = {
     return response.data;
   },
 };
+
+export default agentService;

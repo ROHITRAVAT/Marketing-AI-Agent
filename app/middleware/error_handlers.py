@@ -5,12 +5,42 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.encoders import jsonable_encoder
+from sqlalchemy.exc import DBAPIError
 
 from app.schemas.common import ErrorResponse
 from app.core.request_context import get_request_id
 from app.core.errors import MarketingAgentError
 
 logger = logging.getLogger(__name__)
+
+def _is_database_error(exc: BaseException) -> bool:
+    current: BaseException | None = exc
+    while current is not None:
+        if isinstance(current, DBAPIError) or current.__class__.__module__.startswith(('asyncpg', 'psycopg')):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
+
+async def database_exception_handler(
+    request: Request,
+    exc: DBAPIError,
+) -> JSONResponse:
+    """Return a useful service error when the database is unavailable."""
+    request_id = get_request_id()
+    logger.exception(
+        "request_id=%s | Database error on %s %s",
+        request_id,
+        request.method,
+        request.url.path,
+        exc_info=exc,
+    )
+    error_response = ErrorResponse(
+        success=False,
+        message="Database unavailable. Please start PostgreSQL and try again.",
+        error_code="DATABASE_UNAVAILABLE",
+        request_id=request_id,
+    )
+    return JSONResponse(status_code=503, content=error_response.model_dump())
 
 async def http_exception_handler(
     request: Request,
@@ -83,6 +113,15 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         request.method, 
         request.url.path
     )
+
+    if _is_database_error(exc):
+        error_response = ErrorResponse(
+            success=False,
+            message="Database unavailable. Please start PostgreSQL and try again.",
+            error_code="DATABASE_UNAVAILABLE",
+            request_id=request_id,
+        )
+        return JSONResponse(status_code=503, content=error_response.model_dump())
 
     error_response = ErrorResponse(
         success=False,

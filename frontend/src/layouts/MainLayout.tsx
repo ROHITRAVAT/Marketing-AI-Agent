@@ -1,33 +1,36 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   MessageSquare,
   Megaphone,
   BarChart3,
-  Settings,
-  LogOut,
+  SlidersHorizontal,
+  UserCircle,
   Menu,
   X,
-  Bot,
-  UserCircle,
+  Sparkles,
+  Bell,
+  Plus,
+  LogOut,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { cn } from '@/utils/cn';
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'AI Chat Agent', path: '/chat', icon: MessageSquare },
-  { name: 'Campaigns', path: '/campaigns', icon: Megaphone },
-  { name: 'Analytics', path: '/analytics', icon: BarChart3 },
-  { name: 'Profile', path: '/profile', icon: UserCircle },
-  { name: 'Settings', path: '/settings', icon: Settings },
+  { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['admin', 'manager', 'user'] },
+  { name: 'AI Copilot Chat', path: '/chat', icon: MessageSquare, roles: ['admin', 'manager', 'user'] },
+  { name: 'Campaigns', path: '/campaigns', icon: Megaphone, roles: ['admin', 'manager', 'user'] },
+  { name: 'Analytics', path: '/analytics', icon: BarChart3, roles: ['admin', 'manager'] },
+  { name: 'Integrations & Settings', path: '/settings', icon: SlidersHorizontal, roles: ['admin'] },
+  { name: 'User Profile', path: '/profile', icon: UserCircle, roles: ['admin', 'manager', 'user'] },
 ];
 
 export const MainLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogout = () => {
     logout();
@@ -35,115 +38,161 @@ export const MainLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex">
+    <div className="min-h-screen bg-[#F8F8F6] text-[#18181B] flex font-sans antialiased">
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Left Sidebar */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 border-r border-slate-800 flex flex-col transition-transform duration-200 ease-in-out md:static md:translate-x-0',
+          'fixed inset-y-0 left-0 z-50 w-64 bg-[#FBFBFA] border-r border-[#E8E8E3] flex flex-col transition-transform duration-200 ease-in-out md:static md:translate-x-0',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         {/* Logo and Brand */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-slate-800">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Bot className="w-5 h-5" />
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#E8E8E3]">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#18181B] flex items-center justify-center text-white shadow-sm">
+              <Sparkles className="w-4 h-4 text-amber-400" />
             </div>
-            <span className="font-bold text-lg text-white">Marketing AI</span>
+            <span className="font-bold text-base tracking-tight text-[#18181B]">Marketing AI</span>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
-            className="md:hidden text-slate-400 hover:text-white"
+            className="md:hidden text-[#71717A] hover:text-[#18181B]"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto">
-          {navItems.map((item) => {
+        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
+          {navItems.filter((item) => user && item.roles.includes(user.role)).map((item) => {
             const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 end={item.path === '/'}
                 onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                    isActive
-                      ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/20'
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'
-                  )
-                }
+                className={cn(
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all',
+                  isActive
+                    ? 'bg-[#18181B] text-white shadow-sm'
+                    : 'text-[#52525B] hover:bg-[#EFEFEA] hover:text-[#18181B]'
+                )}
               >
-                <Icon className="w-5 h-5" />
+                <Icon
+                  className={cn(
+                    'w-4 h-4',
+                    isActive ? 'text-amber-400' : 'text-[#71717A]'
+                  )}
+                />
                 {item.name}
               </NavLink>
             );
           })}
         </nav>
 
-        {/* User profile & Logout */}
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
-          <NavLink
-            to="/profile"
-            onClick={() => setSidebarOpen(false)}
-            className="flex items-center space-x-3 truncate group hover:opacity-90 transition-opacity"
-          >
-            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-xs text-indigo-400 group-hover:border-indigo-500 transition-colors">
-              {user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div className="truncate">
-              <p className="text-sm font-medium text-white truncate group-hover:text-indigo-300">
-                {user?.username || user?.email || 'User'}
-              </p>
-              <p className="text-xs text-slate-500 truncate capitalize">
-                {user?.role || 'Guest'}
-              </p>
-            </div>
-          </NavLink>
-          <button
-            onClick={handleLogout}
-            title="Log Out"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
+        {/* User profile & Workspace Status Footer */}
+        <div className="p-3.5 border-t border-[#E8E8E3] bg-[#F5F5F0]/60">
+          <div className="flex items-center justify-between">
+            <NavLink
+              to="/profile"
+              onClick={() => setSidebarOpen(false)}
+              className="flex items-center space-x-2.5 truncate group flex-1"
+            >
+              <div className="w-8 h-8 rounded-full bg-[#18181B] text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="truncate">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-bold text-[#18181B] truncate group-hover:text-indigo-600">
+                    {user?.full_name || user?.username || 'User'}
+                  </p>
+                  <span className="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded bg-[#E4E4DC] text-[#52525B] font-semibold">
+                    {user?.role?.toUpperCase() || 'MEMBER'}
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#71717A] font-mono mt-0.5">
+                  User ID: {user?.id ?? 'Unavailable'}
+                </p>
+              </div>
+            </NavLink>
+            <button
+              onClick={handleLogout}
+              title="Log Out"
+              className="p-1.5 rounded-lg text-[#71717A] hover:text-rose-600 hover:bg-rose-50 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* Main content wrapper */}
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top Header */}
-        <header className="h-16 bg-slate-900/60 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 sm:px-6 md:px-8">
-          <div className="flex items-center gap-4">
+        {/* Top Header Bar */}
+        <header className="h-16 bg-[#FBFBFA]/90 backdrop-blur-md border-b border-[#E8E8E3] flex items-center justify-between px-4 sm:px-8 sticky top-0 z-30">
+          {/* Left Breadcrumb & Mobile toggle */}
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden text-slate-400 hover:text-white p-1"
+              className="md:hidden text-[#71717A] hover:text-[#18181B] p-1"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-lg font-semibold text-white">Dashboard Console</h1>
+            <div className="flex items-center gap-2 text-xs text-[#71717A]">
+              <span className="italic font-serif text-[#18181B]">Marketing AI</span>
+              <span>›</span>
+              <span className="font-medium text-[#52525B]">Executive Workspace</span>
+            </div>
           </div>
+
+          {/* Right Status & Actions */}
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              ● API Online
-            </span>
+            {/* Configured model, without claiming runtime availability. */}
+            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
+              <Sparkles className="w-3 h-3 text-amber-500" />
+              Qwen3:8B
+            </div>
+
+            {/* Notification Bell (no fake persistent dot) */}
+            <NavLink
+              to="/campaigns"
+              title="Campaign alerts"
+              className="relative p-2 rounded-xl text-[#71717A] hover:text-[#18181B] hover:bg-[#EFEFEA] transition-colors"
+            >
+              <Bell className="w-4 h-4" />
+            </NavLink>
+
+            {/* Primary New Campaign Button */}
+            <NavLink
+              to="/campaigns"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#18181B] hover:bg-[#27272A] text-white text-xs font-semibold rounded-xl transition-all shadow-sm"
+            >
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              New Campaign
+            </NavLink>
+
+            {/* User Avatar */}
+            <NavLink to="/profile" className="hidden sm:block">
+              <div className="w-8 h-8 rounded-full bg-[#18181B] text-white flex items-center justify-center font-bold text-xs border border-[#E4E4DC]">
+                {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
+              </div>
+            </NavLink>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto">
+        <main className="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
           <Outlet />
         </main>
       </div>

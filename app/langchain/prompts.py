@@ -134,3 +134,65 @@ EMAIL_MARKETING_PROMPT = ChatPromptTemplate.from_messages(
         ),
     ]
 )
+
+HASHTAG_GENERATOR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a social media hashtag strategist. Generate relevant, high-reach hashtags "
+            "tailored to the platform and industry, mixing broad and niche tags for discoverability.",
+        ),
+        (
+            "human",
+            "Platform: {platform}\nIndustry: {industry}\nTopic/Product: {product}\n"
+            "Number of hashtags: {count}\n\nGenerate the hashtags now:",
+        ),
+    ]
+)
+
+CAMPAIGN_GENERATOR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a senior marketing strategist. Produce a complete, structured campaign plan "
+            "with clear audience targeting, messaging, channels, and success metrics.",
+        ),
+        (
+            "human",
+            "Campaign objective: {campaign_goal}\nProduct/Service: {product}\n"
+            "Target Audience: {target_audience}\nPlatform: {platform}\n\n"
+            "Generate the complete campaign now:",
+        ),
+    ]
+)
+
+CONTENT_CALENDAR_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a content planning specialist. Create a realistic, well-paced publishing "
+            "calendar that balances platforms and content types over the requested timeframe.",
+        ),
+        (
+            "human",
+            "Product/Service: {product}\nTarget Audience: {target_audience}\nPlatform(s): {platform}\n"
+            "Campaign Goal: {campaign_goal}\nTimeframe: {timeframe}\n\n"
+            "Generate the content calendar now:",
+        ),
+    ]
+)
+
+CAMPAIGN_OPTIMIZATION_PROMPT = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "You are a marketing performance analyst. Review the given campaign details and provide "
+            "honest, specific, actionable recommendations for improvement.",
+        ),
+        (
+            "human",
+            "Campaign Name: {campaign_name}\nDescription: {description}\nTarget Audience: {target_audience}\n"
+            "Status: {status}\nBudget: {budget}\n\nAnalyze this campaign and provide recommendations now:",
+        ),
+    ]
+)

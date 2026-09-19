@@ -3,10 +3,14 @@ from app.agents.utils.errors import handle_node_error
 from app.agents.enums import ToolExecutionStatus
 from app.agents.schemas import ToolResult, ErrorInfo
 from app.langchain.chains import (
-    build_seo_chain, 
+    build_seo_chain,
     build_social_media_chain,
     build_ads_chain,
-    build_email_marketing_chain
+    build_email_marketing_chain,
+    build_hashtag_chain,
+    build_campaign_generator_chain,
+    build_content_calendar_chain,
+    build_campaign_optimization_chain,
 )
 import app.database.connection as db_conn
 from app.models.approval import ApprovalRequest
@@ -74,7 +78,10 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
-                elif "social" in description_lower:
+                elif any(
+                    keyword in description_lower
+                    for keyword in ["social", "linkedin", "facebook", "instagram", "twitter", " x post", "x.com"]
+                ):
                     # Verification checkpoint: ensure approval
                     if state.approval_required:
                         if not state.approval_request_id:
@@ -190,10 +197,12 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                                 "post_count": "3",
                                 "platform": state.platform or "",
                                 "brief": state.user_input,
+                                "strategy": state.strategy or "",
                                 "audience": state.target_audience or "",
                                 "goal": state.campaign_goal or "",
-                                "strategy": state.strategy or "",
-                                "retrieved_context": "\n".join(d.content for d in state.retrieved_documents) if state.retrieved_documents else "",
+                                "retrieved_context": "\n\n".join(
+                                    doc.content for doc in state.retrieved_documents
+                                ) if state.retrieved_documents else "No additional knowledge retrieved.",
                             })
 
                         result = await retry_operation(
@@ -264,6 +273,164 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         )
                     )
 
+                elif "generate" in description_lower and "campaign" in description_lower:
+                    chain = build_campaign_generator_chain()
+
+                    async def run_campaign_generator():
+                        return await chain.ainvoke({
+                            "campaign_goal": state.campaign_goal or "",
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "platform": state.platform or "",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_campaign_generator,
+                        max_attempts=3,
+                        operation_name="campaign_generator",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="campaign_generator",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
+                        )
+                    )
+
+                elif "optimiz" in description_lower:
+                    if not state.campaign_id:
+                        raise ToolExecutionError(
+                            "Cannot optimize campaign: no campaign_id on the agent state.",
+                            retryable=False,
+                        )
+
+                    from app.services.campaign_service import CampaignService
+
+                    async def run_campaign_optimization():
+                        async with db_conn.AsyncSessionLocal() as db:
+                            campaign = await CampaignService.get_campaign(db, state.campaign_id)
+                            if not campaign:
+                                raise ToolExecutionError(
+                                    f"Campaign {state.campaign_id} not found.",
+                                    retryable=False,
+                                )
+
+                            chain = build_campaign_optimization_chain()
+                            analysis = await chain.ainvoke({
+                                "campaign_name": campaign.name,
+                                "description": campaign.description or "",
+                                "target_audience": campaign.target_audience or "",
+                                "status": campaign.status,
+                                "budget": str(campaign.budget) if campaign.budget else "Not specified",
+                            })
+                            return analysis.model_dump() if hasattr(analysis, "model_dump") else analysis
+
+                    result = await retry_operation(
+                        operation=run_campaign_optimization,
+                        max_attempts=3,
+                        operation_name="campaign_optimization",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="campaign_optimization",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "campaign" in description_lower:
+                    if not state.user_id:
+                        raise ToolExecutionError(
+                            "Cannot create campaign: no user_id on the agent state.",
+                            retryable=False,
+                        )
+
+                    from app.services.campaign_service import CampaignService
+                    from app.schemas.campaign import CampaignCreate
+
+                    async def run_create_campaign():
+                        campaign_in = CampaignCreate(
+                            user_id=state.user_id,
+                            name=state.product or state.campaign_goal or "Untitled Campaign",
+                            description=(state.generated_content.body if state.generated_content else state.strategy) or "",
+                            target_audience=state.target_audience,
+                        )
+                        async with db_conn.AsyncSessionLocal() as db:
+                            campaign = await CampaignService.create_campaign(db, campaign_in)
+                            return {"campaign_id": campaign.id, "name": campaign.name}
+
+                    result = await retry_operation(
+                        operation=run_create_campaign,
+                        max_attempts=3,
+                        operation_name="create_campaign",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="create_campaign",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "hashtag" in description_lower:
+                    chain = build_hashtag_chain()
+
+                    async def run_hashtags():
+                        return await chain.ainvoke({
+                            "platform": state.platform or "general",
+                            "industry": state.target_audience or "",
+                            "product": state.product or "",
+                            "count": "10",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_hashtags,
+                        max_attempts=3,
+                        operation_name="hashtag_generation",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="hashtag_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
+                        )
+                    )
+
+                elif "calendar" in description_lower or "schedule" in description_lower:
+                    chain = build_content_calendar_chain()
+
+                    async def run_calendar():
+                        return await chain.ainvoke({
+                            "product": state.product or "",
+                            "target_audience": state.target_audience or "",
+                            "platform": state.platform or "",
+                            "campaign_goal": state.campaign_goal or "",
+                            "timeframe": "weekly",
+                        })
+
+                    result = await retry_operation(
+                        operation=run_calendar,
+                        max_attempts=3,
+                        operation_name="content_calendar",
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="content_calendar",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result.model_dump() if hasattr(result, "model_dump") else result},
+                        )
+                    )
+
                 elif "analytic" in description_lower:
                     from app.agents.tools.analytics_tool import get_analytics_summary_for_agent
                     
@@ -289,6 +456,7 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                             data={"output": result},
                         )
                     )
+
 
                 else:
                     new_tool_results.append(

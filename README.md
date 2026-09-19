@@ -564,7 +564,58 @@ Real issues hit during development — documented so they don't cost anyone else
 ```bash
    docker compose exec ollama ollama pull qwen3:8b
    docker compose exec ollama ollama pull all-minilm
+
+10. **Unrelated projects on the same machine can silently steal ports 5432/8000.**
+    A separate, unrelated project (`job-automation-system`) has repeatedly been found
+    running its own Postgres/backend containers on the same ports this project needs,
+    causing confusing bind failures (`port is already allocated`) that look like a bug
+    in this project but aren't. Check for stray containers from other projects:
+```bash
+    docker ps
 ```
+    If any unrelated containers show up using ports 5432 or 8000, stop them:
+```bash
+    docker stop <container-name>
+```
+
+11. **Never start the `frontend` service alone — it needs `backend` already running.**
+    The frontend's nginx config proxies to a service literally named `backend`, and nginx
+    resolves that hostname once at container startup. If `backend` isn't up yet, nginx
+    crashes immediately (`host not found in upstream "backend"`) and the container exits.
+    Always bring up the full stack together, not services in isolation:
+```bash
+    docker compose up -d
+```
+```
+12. **The frontend Docker image also needs rebuilding after pulling new code — not just backend.**
+    Same root cause as gotcha #5. `docker compose up -d` alone does not rebuild images;
+    a frontend container running for days can silently serve an old, stale JS bundle
+    even after `git pull` brings in real new pages/routing. Symptom: the page loads
+    without errors but shows old/placeholder content regardless of which URL you visit,
+    since the whole app (including routing) is baked into that one stale bundle.
+    Always rebuild after pulling frontend changes:
+```bash
+    docker compose up -d --build frontend
+```
+    When in doubt, just rebuild everything:
+```bash
+    docker compose up -d --build
+```
+
+13. **`.env` values can silently revert between sessions — check them first when something
+    that worked before suddenly doesn't.** This has now happened twice: `OLLAMA_MODEL` reset
+    to empty, and separately `DATABASE_URL` reverted to using `localhost` instead of `postgres`
+    (which only works from the host, never from inside a container — causes
+    `[Errno -2] Name or service not known` errors specifically from libraries that read
+    `DATABASE_URL` directly, like the LangGraph checkpointer, even while other services like
+    Qdrant work fine). Root cause unconfirmed, but before deep-diving into a "sudden" failure,
+    always sanity-check the relevant `.env` value first:
+```bash
+    Get-Content .env | Select-String -Pattern "DATABASE_URL|OLLAMA_MODEL|OLLAMA_EMBEDDING_MODEL"
+```
+    Expected values: `DATABASE_URL` must use `@postgres:5432` (not `@localhost`) for anything
+    running inside Docker. `OLLAMA_MODEL=qwen3:8b`, `OLLAMA_EMBEDDING_MODEL=all-minilm`.
+
 
 ## License
 

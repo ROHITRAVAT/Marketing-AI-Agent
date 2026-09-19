@@ -5,7 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from unittest.mock import patch, MagicMock, AsyncMock
 
 from app.main import app
-from app.api.deps import get_db_session, get_current_user
+from app.api.deps import get_db_session
+from app.dependencies.auth import get_current_user
 from app.models.user import User
 from app.agents.enums import AgentStatus
 

@@ -1,11 +1,16 @@
 import logging
+import sys
 import asyncio
 from contextlib import asynccontextmanager
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import DBAPIError
 
 from app.core.config import APP_NAME, APP_VERSION, ALLOWED_ORIGINS, LOG_LEVEL
 from app.core.logging import setup_logging
@@ -14,6 +19,7 @@ from app.middleware.error_handlers import (
     http_exception_handler,
     validation_exception_handler,
     unhandled_exception_handler,
+    database_exception_handler,
     marketing_agent_error_handler,
 )
 from app.core.errors import MarketingAgentError
@@ -91,6 +97,7 @@ app.add_exception_handler(
     http_exception_handler,
 )
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(DBAPIError, database_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # Routers

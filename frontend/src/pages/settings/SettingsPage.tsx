@@ -63,30 +63,30 @@ export const SettingsPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8 text-[#18181B]">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold tracking-tight text-white">Settings & Integrations</h2>
-        <p className="text-sm text-slate-400">
+        <h2 className="text-3xl sm:text-4xl font-serif tracking-tight text-[#18181B]">Settings &amp; Integrations</h2>
+        <p className="text-sm text-[#71717A] mt-1">
           Configure platform integrations, AI agent parameters, and notification preferences.
         </p>
       </div>
 
       {saveBanner && (
-        <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-4 flex items-center gap-3 text-emerald-300 text-sm">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 flex items-center gap-3 text-emerald-800 text-xs font-semibold shadow-xs">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
           <span>Settings saved successfully. Changes applied to active AI agent workflows.</span>
         </div>
       )}
 
       {/* Tabs Bar */}
-      <div className="border-b border-slate-800 flex gap-6">
+      <div className="border-b border-[#E8E8E3] flex gap-6">
         <button
           onClick={() => setActiveTab('integrations')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 ${
             activeTab === 'integrations'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#18181B] text-[#18181B]'
+              : 'border-transparent text-[#71717A] hover:text-[#18181B]'
           }`}
         >
           <Share2 className="w-4 h-4" />
@@ -95,46 +95,46 @@ export const SettingsPage: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('ai')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 ${
             activeTab === 'ai'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#18181B] text-[#18181B]'
+              : 'border-transparent text-[#71717A] hover:text-[#18181B]'
           }`}
         >
           <Cpu className="w-4 h-4" />
-          AI Model & Agent Preferences
+          AI Model &amp; Preferences
         </button>
 
         <button
           onClick={() => setActiveTab('notifications')}
-          className={`pb-3 text-sm font-medium transition-colors border-b-2 flex items-center gap-2 ${
+          className={`pb-3 text-xs sm:text-sm font-semibold transition-all border-b-2 flex items-center gap-2 ${
             activeTab === 'notifications'
-              ? 'border-indigo-500 text-indigo-400'
-              : 'border-transparent text-slate-400 hover:text-slate-200'
+              ? 'border-[#18181B] text-[#18181B]'
+              : 'border-transparent text-[#71717A] hover:text-[#18181B]'
           }`}
         >
           <Bell className="w-4 h-4" />
-          Notifications & System
+          Notifications &amp; System
         </button>
       </div>
 
       {/* Tab 1: Platform Integrations */}
       {activeTab === 'integrations' && (
         <div className="space-y-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-            <h3 className="text-base font-bold text-white">Connected Marketing & AI Channels</h3>
-            <p className="text-xs text-slate-400 mt-1">
+          <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 shadow-xs">
+            <h3 className="text-base font-bold text-[#18181B]">Connected Marketing &amp; AI Channels</h3>
+            <p className="text-xs text-[#71717A] mt-1">
               Connect external social accounts and backend AI engines to enable automated publishing and retrieval.
             </p>
 
-            <div className="divide-y divide-slate-800 mt-6">
+            <div className="divide-y divide-[#F2F2ED] mt-6">
               {integrations.map((item) => (
                 <div
                   key={item.id}
                   className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-indigo-400">
+                    <div className="w-10 h-10 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-[#18181B] shrink-0">
                       {item.id === 'qdrant' ? (
                         <Database className="w-5 h-5" />
                       ) : item.id === 'ollama' ? (
@@ -145,15 +145,15 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h4 className="text-sm font-semibold text-white">{item.name}</h4>
-                        <span className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">
+                        <h4 className="text-sm font-bold text-[#18181B]">{item.name}</h4>
+                        <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
                           {item.category}
                         </span>
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
+                      <p className="text-xs text-[#71717A] mt-0.5">
                         {item.accountName}{' '}
                         {item.lastSynced && (
-                          <span className="text-slate-500">· Synced {item.lastSynced}</span>
+                          <span className="text-[#A1A1AA]">· Synced {item.lastSynced}</span>
                         )}
                       </p>
                     </div>
@@ -161,15 +161,15 @@ export const SettingsPage: React.FC = () => {
 
                   <div className="flex items-center gap-3">
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono uppercase font-semibold ${
                         item.connected
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-[#F3F3EE] text-[#71717A] border border-[#E4E4DC]'
                       }`}
                     >
                       <span
                         className={`w-1.5 h-1.5 rounded-full ${
-                          item.connected ? 'bg-emerald-400' : 'bg-slate-500'
+                          item.connected ? 'bg-emerald-500' : 'bg-slate-400'
                         }`}
                       />
                       {item.connected ? 'Connected' : 'Disconnected'}
@@ -177,10 +177,10 @@ export const SettingsPage: React.FC = () => {
 
                     <button
                       onClick={() => toggleIntegration(item.id)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                      className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                         item.connected
-                          ? 'border-slate-700 bg-slate-800/80 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30 text-slate-300'
-                          : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500 shadow-sm'
+                          ? 'border-[#E4E4DC] bg-white hover:bg-rose-50 hover:text-rose-600 hover:border-rose-200 text-[#71717A]'
+                          : 'bg-[#18181B] hover:bg-[#27272A] text-white border-[#18181B] shadow-xs'
                       }`}
                     >
                       {item.connected ? 'Disconnect' : 'Connect'}
@@ -236,47 +236,47 @@ export const SettingsPage: React.FC = () => {
       {/* Tab 2: AI Preferences */}
       {activeTab === 'ai' && (
         <form onSubmit={handleSaveAI} className="space-y-6">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+          <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
             <div>
-              <h3 className="text-base font-bold text-white">Language Model & Generation Parameters</h3>
-              <p className="text-xs text-slate-400 mt-1">
+              <h3 className="text-base font-bold text-[#18181B]">Language Model &amp; Generation Parameters</h3>
+              <p className="text-xs text-[#71717A] mt-1">
                 Fine-tune how the LangGraph Marketing Agent reasons, writes, and cites company knowledge.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
                   Primary LLM Engine
                 </label>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl p-2.5 text-xs sm:text-sm text-[#18181B] focus:outline-none transition-all"
                 >
                   <option value="qwen3:latest">Qwen 3 (Local Ollama - High Speed)</option>
                   <option value="llama3.3:70b">Llama 3.3 70B (Enterprise Reasoning)</option>
                   <option value="deepseek-r1:latest">DeepSeek R1 (Strategic Planning)</option>
                   <option value="gpt-4o">GPT-4o (Cloud API)</option>
                 </select>
-                <p className="text-[11px] text-slate-500">Connected to local Ollama inference service.</p>
+                <p className="text-[11px] text-[#A1A1AA]">Connected to local Ollama inference service.</p>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
                   Default Content Tone
                 </label>
                 <select
                   value={defaultTone}
                   onChange={(e) => setDefaultTone(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-lg p-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl p-2.5 text-xs sm:text-sm text-[#18181B] focus:outline-none transition-all"
                 >
                   <option value="professional">Professional / B2B Authority</option>
                   <option value="persuasive">Persuasive / High-Converting</option>
                   <option value="viral">Viral / Punchy / Hooks</option>
                   <option value="casual">Casual / Engaging</option>
                 </select>
-                <p className="text-[11px] text-slate-500">Applied automatically during prompt expansion.</p>
+                <p className="text-[11px] text-[#A1A1AA]">Applied automatically during prompt expansion.</p>
               </div>
             </div>
 
@@ -284,10 +284,10 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <label className="font-semibold uppercase tracking-wider text-slate-300">
+                  <label className="text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
                     Creativity / Temperature ({temperature})
                   </label>
-                  <span className="text-indigo-400 font-medium">
+                  <span className="text-[#18181B] font-semibold">
                     {temperature <= 0.3 ? 'Deterministic' : temperature <= 0.7 ? 'Balanced' : 'Creative'}
                   </span>
                 </div>
@@ -298,16 +298,16 @@ export const SettingsPage: React.FC = () => {
                   step="0.1"
                   value={temperature}
                   onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-600 bg-slate-800 rounded-lg cursor-pointer"
+                  className="w-full accent-[#18181B] bg-[#E8E8E3] rounded-lg cursor-pointer h-2"
                 />
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <label className="font-semibold uppercase tracking-wider text-slate-300">
+                  <label className="text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
                     Max Output Length ({maxTokens} tokens)
                   </label>
-                  <span className="text-indigo-400 font-medium">
+                  <span className="text-[#18181B] font-semibold font-mono">
                     ~{Math.round(maxTokens * 0.75)} words
                   </span>
                 </div>
@@ -318,33 +318,33 @@ export const SettingsPage: React.FC = () => {
                   step="256"
                   value={maxTokens}
                   onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-                  className="w-full accent-indigo-600 bg-slate-800 rounded-lg cursor-pointer"
+                  className="w-full accent-[#18181B] bg-[#E8E8E3] rounded-lg cursor-pointer h-2"
                 />
               </div>
             </div>
 
             {/* Brand Voice / System Prompt */}
             <div className="space-y-1.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300">
-                Custom Brand Voice & System Directive
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
+                Custom Brand Voice &amp; System Directive
               </label>
               <textarea
                 rows={4}
                 value={systemPrompt}
                 onChange={(e) => setSystemPrompt(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-lg p-3 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono leading-relaxed"
+                className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl p-3 text-xs text-[#18181B] focus:outline-none font-mono leading-relaxed transition-all"
               />
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-[#A1A1AA]">
                 Injects custom brand guidelines and terminology into all LangGraph generation nodes.
               </p>
             </div>
 
             {/* Agent Workflow Switches */}
-            <div className="space-y-3 pt-3 border-t border-slate-800">
-              <label className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+            <div className="space-y-3 pt-3 border-t border-[#F2F2ED]">
+              <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] cursor-pointer hover:border-[#D1D1C7] transition-all">
                 <div>
-                  <span className="text-sm font-semibold text-white block">Auto Review Node</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs sm:text-sm font-bold text-[#18181B] block">Auto Review Node</span>
+                  <span className="text-xs text-[#71717A]">
                     Agent automatically evaluates content against brand criteria before publishing.
                   </span>
                 </div>
@@ -352,14 +352,14 @@ export const SettingsPage: React.FC = () => {
                   type="checkbox"
                   checked={enableAutoReview}
                   onChange={(e) => setEnableAutoReview(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                  className="w-4 h-4 rounded text-[#18181B] accent-[#18181B]"
                 />
               </label>
 
-              <label className="flex items-center justify-between p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+              <label className="flex items-center justify-between p-3.5 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] cursor-pointer hover:border-[#D1D1C7] transition-all">
                 <div>
-                  <span className="text-sm font-semibold text-white block">RAG Context Search (Qdrant)</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs sm:text-sm font-bold text-[#18181B] block">RAG Context Search (Qdrant)</span>
+                  <span className="text-xs text-[#71717A]">
                     Retrieves internal brand manuals and PDF assets to ground generated marketing copy.
                   </span>
                 </div>
@@ -367,13 +367,13 @@ export const SettingsPage: React.FC = () => {
                   type="checkbox"
                   checked={enableRagSearch}
                   onChange={(e) => setEnableRagSearch(e.target.checked)}
-                  className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                  className="w-4 h-4 rounded text-[#18181B] accent-[#18181B]"
                 />
               </label>
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="submit" icon={<Save className="w-4 h-4" />}>
+              <Button type="submit" icon={<Save className="w-4 h-4 text-amber-400" />}>
                 Save AI Configuration
               </Button>
             </div>
@@ -383,17 +383,17 @@ export const SettingsPage: React.FC = () => {
 
       {/* Tab 3: Notifications & System */}
       {activeTab === 'notifications' && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#E8E8E3] rounded-2xl p-6 sm:p-8 space-y-6 shadow-xs">
           <div>
-            <h3 className="text-base font-bold text-white">Notification & Delivery Preferences</h3>
-            <p className="text-xs text-slate-400 mt-1">Configure automated email summaries and threshold alerts.</p>
+            <h3 className="text-base font-bold text-[#18181B]">Notification &amp; Delivery Preferences</h3>
+            <p className="text-xs text-[#71717A] mt-1">Configure automated email summaries and threshold alerts.</p>
           </div>
 
           <div className="space-y-4">
-            <label className="flex items-center justify-between p-4 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+            <label className="flex items-center justify-between p-4 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] cursor-pointer hover:border-[#D1D1C7] transition-all">
               <div>
-                <span className="text-sm font-semibold text-white block">Campaign Milestones Email</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs sm:text-sm font-bold text-[#18181B] block">Campaign Milestones Email</span>
+                <span className="text-xs text-[#71717A]">
                   Receive alerts when a scheduled post goes live or reaches 10k impressions.
                 </span>
               </div>
@@ -401,14 +401,14 @@ export const SettingsPage: React.FC = () => {
                 type="checkbox"
                 checked={emailNotifications}
                 onChange={(e) => updateNotificationSettings({ emailNotifications: e.target.checked })}
-                className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                className="w-4 h-4 rounded text-[#18181B] accent-[#18181B]"
               />
             </label>
 
-            <label className="flex items-center justify-between p-4 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
+            <label className="flex items-center justify-between p-4 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] cursor-pointer hover:border-[#D1D1C7] transition-all">
               <div>
-                <span className="text-sm font-semibold text-white block">Weekly Executive Performance Digest</span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs sm:text-sm font-bold text-[#18181B] block">Weekly Executive Performance Digest</span>
+                <span className="text-xs text-[#71717A]">
                   Delivers a consolidated weekly summary of ROI, conversions, and AI suggestions every Monday.
                 </span>
               </div>
@@ -416,7 +416,7 @@ export const SettingsPage: React.FC = () => {
                 type="checkbox"
                 checked={weeklyReports}
                 onChange={(e) => updateNotificationSettings({ weeklyReports: e.target.checked })}
-                className="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700"
+                className="w-4 h-4 rounded text-[#18181B] accent-[#18181B]"
               />
             </label>
           </div>
