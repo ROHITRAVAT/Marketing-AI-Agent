@@ -1,12 +1,12 @@
 from typing import Any
 from langgraph.types import interrupt
-from langgraph.errors import GraphInterrupt
+from langgraph.errors import GraphInterrupt, NodeInterrupt
 from sqlalchemy import select
 
 from app.agents.state import MarketingAgentState
 from app.agents.enums import AgentStatus, ApprovalStatus
 from app.agents.utils.errors import handle_node_error
-from app.database.connection import AsyncSessionLocal
+import app.database.connection as db_conn
 from app.models.approval import ApprovalRequest
 
 
@@ -49,7 +49,7 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
             raise ValueError("thread_id not found in config")
 
         # Create approval request in the database
-        async with AsyncSessionLocal() as db:
+        async with db_conn.AsyncSessionLocal() as db:
             # Idempotency check
             existing = await db.execute(
                 select(ApprovalRequest).where(
@@ -112,10 +112,12 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
         
         return new_state
 
-    except GraphInterrupt as gi:
+    except (GraphInterrupt, NodeInterrupt) as gi:
         # Re-raise GraphInterrupt so LangGraph can properly pause execution
         raise gi
     except Exception as error:
+        print(f"Exception type: {type(error)}")
+        print(f"Exception class name: {error.__class__.__name__}")
         return handle_node_error(
             state,
             error,

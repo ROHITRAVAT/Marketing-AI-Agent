@@ -13,35 +13,40 @@ import uuid
 
 pytestmark = pytest.mark.asyncio
 
+@pytest.fixture(autouse=True)
+def mock_rag_services():
+    # Override the autouse fixture from conftest.py
+    # so we use the REAL RAG services in this E2E test.
+    yield
+
 @pytest.fixture
 async def seeded_qdrant():
     """Seeds Qdrant with specific marketing documents for testing retrieval."""
     
     memory_client = AsyncQdrantClient(":memory:")
-    # We must ensure the collection is created in memory
     from qdrant_client.models import VectorParams, Distance
-    from app.core.config import QDRANT_VECTOR_SIZE
-    
-    await memory_client.create_collection(
-        collection_name=COLLECTION_MARKETING_DOCUMENTS,
-        vectors_config=VectorParams(size=QDRANT_VECTOR_SIZE, distance=Distance.COSINE),
-    )
     
     qdrant = QdrantService(memory_client)
     
     with patch("app.agents.nodes.retrieval.get_qdrant_service", return_value=qdrant):
         ollama = get_ollama_service()
     
-        # Generate test documents
         docs = [
             "Company Description: AI-Marketing Co builds advanced autonomous agents for social media.",
             "Tone Guidelines: Professional, energetic, and concise.",
             "Target Audience: Marketing agencies, social media managers."
         ]
         
+        test_vector = await ollama.embed(docs[0])
+        vector_size = len(test_vector)
+        
+        await memory_client.create_collection(
+            collection_name=COLLECTION_MARKETING_DOCUMENTS,
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+        )
+        
         points = []
         for i, doc in enumerate(docs):
-            # We must generate real embeddings to be retrieved semantically
             vector = await ollama.embed(doc)
             points.append(
                 PointStruct(
@@ -55,14 +60,12 @@ async def seeded_qdrant():
         
         yield qdrant
         
-        # Cleanup (optional but good for E2E)
         point_ids = [p.id for p in points]
         await qdrant.delete_points(COLLECTION_MARKETING_DOCUMENTS, point_ids)
 
 async def test_qdrant_retrieval_flow(seeded_qdrant):
     graph = build_marketing_graph()
     
-    # The prompt should be similar to the seeded documents to ensure high retrieval score
     state = MarketingAgentState(
         user_input="Create a LinkedIn post describing our product using our brand guidelines.",
         product="autonomous agents",
@@ -76,11 +79,9 @@ async def test_qdrant_retrieval_flow(seeded_qdrant):
     
     assert result["status"] in [AgentStatus.WAITING_FOR_APPROVAL, AgentStatus.COMPLETED]
     
-    # Verify retrieval
     assert len(result["retrieved_documents"]) > 0
     retrieved_content = " ".join([d.content for d in result["retrieved_documents"]])
     assert "AI-Marketing Co" in retrieved_content or "Tone Guidelines" in retrieved_content
     
-    # The LLM should incorporate the retrieved context (like 'professional', 'energetic', 'AI-Marketing')
     generated = result["generated_content"].body.lower()
     assert len(generated) > 0

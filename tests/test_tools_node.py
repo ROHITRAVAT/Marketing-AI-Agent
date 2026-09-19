@@ -31,6 +31,7 @@ async def test_execute_tools_dispatches_seo_step():
 @pytest.mark.asyncio
 async def test_execute_tools_dispatches_social_media_step():
     state = MarketingAgentState(
+        user_id=1,
         user_input="Create a campaign",
         platform="Instagram",
         target_audience="Runners",
@@ -41,11 +42,17 @@ async def test_execute_tools_dispatches_social_media_step():
     mock_chain = AsyncMock()
     mock_chain.ainvoke.return_value = "Post 1: Run faster today!"
 
-    with patch("app.agents.nodes.tools.build_social_media_chain", return_value=mock_chain):
+    mock_db = AsyncMock()
+    mock_db.__aenter__.return_value = mock_db
+
+    with patch("app.agents.nodes.tools.build_social_media_chain", return_value=mock_chain), \
+         patch("app.agents.nodes.tools.db_conn.AsyncSessionLocal", return_value=mock_db), \
+         patch("app.core.oauth.manager.TokenManager.get_connection_status", new_callable=AsyncMock, return_value=None), \
+         patch("app.services.instagram_service.InstagramService.publish_post", new_callable=AsyncMock, return_value="mock_post_id"):
         result = await execute_tools(state)
 
     assert len(result["tool_results"]) == 1
-    assert result["tool_results"][0].tool_name == "social_media_generation"
+    assert result["tool_results"][0].tool_name == "instagram_publish"
     assert result["tool_results"][0].status == ToolExecutionStatus.SUCCESS
 
 

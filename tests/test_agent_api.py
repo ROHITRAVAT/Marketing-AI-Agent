@@ -111,7 +111,7 @@ async def test_agent_chat_approval_pending(async_client: AsyncClient):
         assert data["approval_request_id"] == 999
 
 @pytest.mark.asyncio
-async def test_agent_chat_already_waiting_for_approval(async_client: AsyncClient):
+async def test_agent_chat_already_approval_pending(async_client: AsyncClient):
     with patch("app.services.agent_service.build_marketing_graph") as mock_build_graph, \
          patch("app.services.agent_service.get_checkpointer") as mock_get_checkpointer:
         

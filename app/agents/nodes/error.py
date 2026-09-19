@@ -4,7 +4,7 @@ from app.agents.state import MarketingAgentState
 from app.agents.enums import AgentStatus
 from app.agents.schemas import ErrorInfo
 from app.core.errors import MarketingAgentError, ErrorCategory
-from app.database.connection import AsyncSessionLocal
+import app.database.connection as db_conn
 from app.models.error_log import AgentErrorLog
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ async def handle_error(state: MarketingAgentState) -> dict:
 
     # Persist to Database
     try:
-        async with AsyncSessionLocal() as db:
+        async with db_conn.AsyncSessionLocal() as db:
             error_log = AgentErrorLog(
                 workflow_id=f"thread_{state.user_id}" if state.user_id else str(uuid.uuid4()), # Need proper thread ID if available
                 user_id=state.user_id,

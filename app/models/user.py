@@ -104,6 +104,12 @@ class User(Base):
         cascade="all, delete-orphan",
     )
 
+    integration_connections: Mapped[List["IntegrationConnection"]] = relationship(
+        "IntegrationConnection",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     def __repr__(self) -> str:
         return (
             f"<User("

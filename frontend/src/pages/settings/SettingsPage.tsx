@@ -20,7 +20,20 @@ export const SettingsPage: React.FC = () => {
     updateAISettings,
     toggleIntegration,
     updateNotificationSettings,
+    fetchLinkedInStatus,
+    fetchFacebookStatus,
+    selectFacebookPage,
+    fetchInstagramStatus,
+    selectInstagramAccount,
+    fetchTwitterStatus,
   } = useSettingsStore();
+
+  React.useEffect(() => {
+    fetchLinkedInStatus();
+    fetchFacebookStatus();
+    fetchInstagramStatus();
+    fetchTwitterStatus();
+  }, [fetchLinkedInStatus, fetchFacebookStatus, fetchInstagramStatus, fetchTwitterStatus]);
 
   const [activeTab, setActiveTab] = useState<'integrations' | 'ai' | 'notifications'>('integrations');
   const [saveBanner, setSaveBanner] = useState(false);
@@ -173,6 +186,46 @@ export const SettingsPage: React.FC = () => {
                       {item.connected ? 'Disconnect' : 'Connect'}
                     </button>
                   </div>
+
+                  {/* Facebook Page Selector */}
+                  {item.id === 'facebook' && item.connected && item.pages && item.pages.length > 0 && (
+                    <div className="w-full mt-2 pl-[3.375rem]">
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                        Publishing Page
+                      </label>
+                      <select
+                        value={item.selectedPageId || ''}
+                        onChange={(e) => selectFacebookPage(e.target.value)}
+                        className="w-full max-w-xs bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {item.pages.map((page) => (
+                          <option key={page.id} value={page.id}>
+                            {page.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Instagram Account Selector */}
+                  {item.id === 'instagram' && item.connected && item.pages && item.pages.length > 0 && (
+                    <div className="w-full mt-2 pl-[3.375rem]">
+                      <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1">
+                        Publishing Account
+                      </label>
+                      <select
+                        value={item.selectedPageId || ''}
+                        onChange={(e) => selectInstagramAccount(e.target.value)}
+                        className="w-full max-w-xs bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        {item.pages.map((page) => (
+                          <option key={page.id} value={page.id}>
+                            {page.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

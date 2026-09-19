@@ -48,7 +48,7 @@ async def test_retry_operation_permanent_failure():
     assert mock_func.call_count == 2
 
 @pytest.mark.asyncio
-@patch("app.agents.nodes.error.AsyncSessionLocal")
+@patch("app.database.connection.AsyncSessionLocal")
 async def test_handle_error_node_retryable(mock_db_session):
     """Test handle_error node with a retryable error."""
     
@@ -82,7 +82,7 @@ async def test_handle_error_node_retryable(mock_db_session):
     mock_session.commit.assert_called_once()
 
 @pytest.mark.asyncio
-@patch("app.agents.nodes.error.AsyncSessionLocal")
+@patch("app.database.connection.AsyncSessionLocal")
 async def test_handle_error_node_permanent(mock_db_session):
     """Test handle_error node with a non-retryable error."""
     from app.agents.schemas import ErrorInfo

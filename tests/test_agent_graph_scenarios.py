@@ -65,8 +65,8 @@ async def test_agent_graph_revision_loop_regenerates_content_once_rejected():
         mock_db.refresh = AsyncMock()
         yield mock_db
 
-    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_session), \
-         patch("app.agents.nodes.tools.AsyncSessionLocal", mock_session), \
+    with patch("app.database.connection.AsyncSessionLocal", mock_session), \
+         patch("app.database.connection.AsyncSessionLocal", mock_session), \
          patch("app.agents.nodes.approval.interrupt", return_value={"action": "approve"}), \
          patch("app.agents.nodes.retrieval.retrieve_documents") as mock_retrieve, \
          patch("app.agents.nodes.strategy.build_text_chain") as mock_strategy_chain, \

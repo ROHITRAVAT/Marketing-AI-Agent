@@ -39,6 +39,9 @@ async def create_campaign(
         )
 
 
+from app.api.deps import get_db_session, get_current_user
+from app.models.user import User
+
 @router.get(
     "/",
     response_model=CampaignListResponse,
@@ -53,12 +56,18 @@ async def list_campaigns(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(20, ge=1, le=100, description="Page size (max 100)"),
     db: AsyncSession = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
 ):
     """List campaigns with pagination and filtering."""
     skip = (page - 1) * size
+    
+    # Enforce isolation: users can only see their own campaigns unless they are admins.
+    # We force the user_id filter to current_user.id for security.
+    effective_user_id = current_user.id
+    
     items, total = await CampaignService.get_campaigns(
         db,
-        user_id=user_id,
+        user_id=effective_user_id,
         status=status_filter,
         search=search,
         skip=skip,

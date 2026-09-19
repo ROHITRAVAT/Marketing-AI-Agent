@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   Eye,
@@ -9,10 +9,36 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { analyticsService, AnalyticsSummaryResponse } from '@/services/analytics';
 
 export const AnalyticsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [data, setData] = useState<AnalyticsSummaryResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        const today = new Date();
+        const past = new Date();
+        const days = parseInt(timeRange.replace('d', ''));
+        past.setDate(today.getDate() - days);
+        
+        const summary = await analyticsService.getSummary(
+          past.toISOString().split('T')[0],
+          today.toISOString().split('T')[0]
+        );
+        setData(summary);
+      } catch (error) {
+        console.error('Failed to load analytics', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [timeRange]);
 
   const handleExport = () => {
     setDownloadSuccess(true);
@@ -62,12 +88,20 @@ export const AnalyticsPage: React.FC = () => {
     },
   ];
 
-  const channelMetrics = [
-    { name: 'LinkedIn', percentage: 48, reach: '88.4K', color: 'bg-indigo-500' },
-    { name: 'Twitter / X', percentage: 32, reach: '58.9K', color: 'bg-purple-500' },
-    { name: 'Instagram', percentage: 16, reach: '29.5K', color: 'bg-pink-500' },
-    { name: 'Facebook', percentage: 4, reach: '7.4K', color: 'bg-blue-500' },
-  ];
+  const totalImpressions = data?.overall_impressions || 0;
+  const totalEngagement = data?.overall_engagement || 0;
+  const totalClicks = data?.platforms?.reduce((acc, p) => acc + p.total_clicks, 0) || 0;
+  const averageCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0.0";
+  
+  const channelMetrics = data?.platforms?.map(p => ({
+    name: p.platform,
+    percentage: totalImpressions > 0 ? Math.round((p.total_impressions / totalImpressions) * 100) : 0,
+    reach: p.total_impressions.toLocaleString(),
+    color: p.platform === 'linkedin' ? 'bg-indigo-500' 
+         : p.platform === 'twitter' ? 'bg-purple-500' 
+         : p.platform === 'instagram' ? 'bg-pink-500' 
+         : 'bg-blue-500'
+  })) || [];
 
   return (
     <div className="space-y-8">
@@ -116,12 +150,12 @@ export const AnalyticsPage: React.FC = () => {
             <Eye className="w-4 h-4 text-indigo-400" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">184.2K</span>
+            <span className="text-3xl font-bold text-white">{isLoading ? '-' : totalImpressions.toLocaleString()}</span>
             <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +24.8%
+              <ArrowUpRight className="w-3.5 h-3.5" /> +0.0%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">vs 147.6K in prior period</p>
+          <p className="text-xs text-slate-500 mt-2">Analyzed {data?.total_posts_analyzed || 0} posts</p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
@@ -130,12 +164,12 @@ export const AnalyticsPage: React.FC = () => {
             <MousePointer className="w-4 h-4 text-purple-400" />
           </div>
           <div className="mt-3 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white">9,420</span>
+            <span className="text-3xl font-bold text-white">{isLoading ? '-' : totalClicks.toLocaleString()}</span>
             <span className="text-xs font-medium text-emerald-400 flex items-center">
-              <ArrowUpRight className="w-3.5 h-3.5" /> +16.2%
+              <ArrowUpRight className="w-3.5 h-3.5" /> +0.0%
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-2">Average CTR: 5.1%</p>
+          <p className="text-xs text-slate-500 mt-2">Average CTR: {isLoading ? '-' : averageCTR}%</p>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">

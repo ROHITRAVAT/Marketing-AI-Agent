@@ -140,5 +140,5 @@ def mock_approval_db():
         # Mock the new request id
         yield mock_db
         
-    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_session):
+    with patch("app.database.connection.AsyncSessionLocal", mock_session):
         yield

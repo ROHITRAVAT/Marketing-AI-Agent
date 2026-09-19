@@ -1,11 +1,12 @@
 fastapi==0.141.1
 uvicorn==0.52.1
 pydantic==2.13.4
-pydantic-settings==2.15.0
-python-dotenv==1.2.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+cryptography>=41.0.0
 
 # Database
-SQLAlchemy==2.0.43
+SQLAlchemy==2.0.23
 asyncpg==0.30.0
 alembic==1.16.4
 

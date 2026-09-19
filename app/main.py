@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -23,6 +24,7 @@ from app.ollama.client import close_async_client as close_ollama_client
 from app.qdrant.client import close_async_client as close_qdrant_client
 from app.qdrant.service import ensure_qdrant_collections
 from app.agents.checkpoint import setup_checkpointer
+from app.scheduler.worker import run_scheduler, stop_scheduler
 
 logger = logging.getLogger(__name__)
 @asynccontextmanager
@@ -47,7 +49,18 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("LangGraph checkpointer setup failed: %s", exc)
 
+    # Start the scheduler background task
+    scheduler_task = asyncio.create_task(run_scheduler())
+
     yield
+    
+    # Gracefully stop the scheduler
+    await stop_scheduler()
+    try:
+        await asyncio.wait_for(scheduler_task, timeout=5.0)
+    except asyncio.TimeoutError:
+        logger.warning("Scheduler task did not stop gracefully within timeout.")
+        scheduler_task.cancel()
     await engine.dispose()
     await close_qdrant_client()
     await close_ollama_client()

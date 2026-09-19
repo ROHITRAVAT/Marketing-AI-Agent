@@ -15,7 +15,7 @@ from app.agents.schemas import (
 class MarketingAgentState(BaseModel):
     # User / Request Information
     user_id: int | None = None
-    user_input: str = Field(min_length=1)
+    user_input: str = Field(default="", min_length=0)
 
     product: str | None = None
     target_audience: str | None = None

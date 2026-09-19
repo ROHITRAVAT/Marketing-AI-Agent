@@ -8,7 +8,7 @@ from app.langchain.chains import (
     build_ads_chain,
     build_email_marketing_chain
 )
-from app.database.connection import AsyncSessionLocal
+import app.database.connection as db_conn
 from app.models.approval import ApprovalRequest
 from app.agents.enums import ApprovalStatus
 from app.core.errors import ToolExecutionError, SocialMediaAPIError, ErrorCategory
@@ -28,6 +28,7 @@ async def execute_tools(state: MarketingAgentState) -> dict:
     """
 
     logger.info("Executing tools...")
+    print("Executing tools...")
 
     try:
         new_tool_results: list[ToolResult] = []
@@ -79,7 +80,7 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                         if not state.approval_request_id:
                             raise ToolExecutionError("Approval required but no request ID provided.", retryable=False)
                         
-                        async with AsyncSessionLocal() as db:
+                        async with db_conn.AsyncSessionLocal() as db:
                             result_db = await db.execute(
                                 select(ApprovalRequest).where(ApprovalRequest.id == state.approval_request_id)
                             )
@@ -87,31 +88,128 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                             if not approval or approval.status != ApprovalStatus.APPROVED:
                                 raise ToolExecutionError(f"Action not approved. Current status: {approval.status if approval else 'missing'}", retryable=False)
                     
-                    chain = build_social_media_chain()
-                    
-                    async def run_social():
-                        return await chain.ainvoke({
-                            "post_count": "3",
-                            "platform": state.platform or "",
-                            "brief": state.user_input,
-                            "audience": state.target_audience or "",
-                            "goal": state.campaign_goal or "",
-                        })
+                    platform = (state.platform or "").lower()
+                    if platform not in ("linkedin", "facebook", "instagram", "twitter", "twitter/x"):
+                        # Try to infer from step description
+                        if "linkedin" in description_lower:
+                            platform = "linkedin"
+                        elif "facebook" in description_lower:
+                            platform = "facebook"
+                        elif "instagram" in description_lower:
+                            platform = "instagram"
+                        elif "twitter" in description_lower or " x " in description_lower:
+                            platform = "twitter"
 
-                    result = await retry_operation(
-                        operation=run_social,
-                        max_attempts=3,
-                        operation_name="social_media_generation"
-                    )
+                    if platform in ("linkedin", "facebook", "instagram", "twitter", "twitter/x"):
+                        from app.models.scheduled_post import ScheduledPost
+                        from datetime import datetime, timezone
+                        
+                        post_id = None
+                        
+                        if platform == "linkedin":
+                            from app.services.linkedin_service import LinkedInService
+                            async with db_conn.AsyncSessionLocal() as db:
+                                post_id = await LinkedInService.publish_post(
+                                    user_id=state.user_id,
+                                    content=content_body,
+                                    db=db
+                                )
+                        elif platform == "facebook":
+                            from app.services.facebook_service import FacebookService
+                            async with db_conn.AsyncSessionLocal() as db:
+                                post_id = await FacebookService.publish_post(
+                                    user_id=state.user_id,
+                                    content=content_body,
+                                    db=db
+                                )
+                        elif platform == "instagram":
+                            from app.services.instagram_service import InstagramService
+                            image_url = None
+                            if state.generated_content and state.generated_content.metadata:
+                                image_url = state.generated_content.metadata.get("image_url")
+                            async with db_conn.AsyncSessionLocal() as db:
+                                post_id = await InstagramService.publish_post(
+                                    user_id=state.user_id,
+                                    caption=content_body,
+                                    image_url=image_url,
+                                    db=db
+                                )
+                        elif platform in ("twitter", "twitter/x"):
+                            from app.services.twitter_service import TwitterService
+                            async with db_conn.AsyncSessionLocal() as db:
+                                post_id = await TwitterService.publish_post(
+                                    user_id=state.user_id,
+                                    content=content_body,
+                                    db=db
+                                )
 
-                    new_tool_results.append(
-                        ToolResult(
-                            tool_name="social_media_generation",
-                            status=ToolExecutionStatus.SUCCESS,
-                            idempotency_key=idempotency_key,
-                            data={"output": result},
+                        # Create a ScheduledPost so analytics can track it!
+                        image_url = None
+                        if platform == "instagram" and state.generated_content and state.generated_content.metadata:
+                            image_url = state.generated_content.metadata.get("image_url")
+                        media_urls = [image_url] if image_url else None
+                        
+                        async with db_conn.AsyncSessionLocal() as db:
+                            from app.core.oauth.manager import TokenManager
+                            connection = await TokenManager.get_connection_status(state.user_id, platform, db)
+                            account_id = connection.provider_user_id if connection else None
+                            if platform == "linkedin" and account_id:
+                                account_id = f"urn:li:person:{account_id}"
+
+                            new_post = ScheduledPost(
+                                user_id=state.user_id,
+                                platform="twitter" if platform == "twitter/x" else platform,
+                                content=content_body,
+                                media_urls=media_urls,
+                                scheduled_time=datetime.now(timezone.utc),
+                                status="published",
+                                external_post_id=post_id,
+                                account_id=account_id,
+                                published_at=datetime.now(timezone.utc),
+                                approval_request_id=state.approval_request_id
+                            )
+                            db.add(new_post)
+                            await db.commit()
+                            await db.refresh(new_post)
+                            db_post_id = new_post.id
+                        
+                        new_tool_results.append(
+                            ToolResult(
+                                tool_name=f"{platform}_publish",
+                                status=ToolExecutionStatus.SUCCESS,
+                                idempotency_key=idempotency_key,
+                                data={"output": f"Post published successfully for {platform}. DB ID: {db_post_id} External ID: {post_id}"},
+                            )
                         )
-                    )
+                    else:
+                        # Fallback to general social media generator if platform is missing
+                        chain = build_social_media_chain()
+                        
+                        async def run_social():
+                            return await chain.ainvoke({
+                                "post_count": "3",
+                                "platform": state.platform or "",
+                                "brief": state.user_input,
+                                "audience": state.target_audience or "",
+                                "goal": state.campaign_goal or "",
+                                "strategy": state.strategy or "",
+                                "retrieved_context": "\n".join(d.content for d in state.retrieved_documents) if state.retrieved_documents else "",
+                            })
+
+                        result = await retry_operation(
+                            operation=run_social,
+                            max_attempts=3,
+                            operation_name="social_media_generation"
+                        )
+
+                        new_tool_results.append(
+                            ToolResult(
+                                tool_name="social_media_generation",
+                                status=ToolExecutionStatus.SUCCESS,
+                                idempotency_key=idempotency_key,
+                                data={"output": result},
+                            )
+                        )
 
                 elif "ads" in description_lower:
                     chain = build_ads_chain()
@@ -160,6 +258,32 @@ async def execute_tools(state: MarketingAgentState) -> dict:
                     new_tool_results.append(
                         ToolResult(
                             tool_name="email_marketing_generation",
+                            status=ToolExecutionStatus.SUCCESS,
+                            idempotency_key=idempotency_key,
+                            data={"output": result},
+                        )
+                    )
+
+                elif "analytic" in description_lower:
+                    from app.agents.tools.analytics_tool import get_analytics_summary_for_agent
+                    
+                    async def run_analytics():
+                        async with db_conn.AsyncSessionLocal() as db:
+                            return await get_analytics_summary_for_agent(
+                                user_id=state.user_id,
+                                db=db,
+                                days=30
+                            )
+                            
+                    result = await retry_operation(
+                        operation=run_analytics,
+                        max_attempts=3,
+                        operation_name="analytics_retrieval"
+                    )
+
+                    new_tool_results.append(
+                        ToolResult(
+                            tool_name="analytics_retrieval",
                             status=ToolExecutionStatus.SUCCESS,
                             idempotency_key=idempotency_key,
                             data={"output": result},

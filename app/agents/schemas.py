@@ -35,9 +35,9 @@ class ToolResult(BaseModel):
     error_info: ErrorInfo | None = None
 
 class GeneratedContent(BaseModel):
-    content_type: str = Field(min_length=1)
+    content_type: str = Field(default="", min_length=0)
     title: str | None = None
-    body: str = Field(min_length=1)
+    body: str = Field(default="", min_length=0)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 class ReviewResult(BaseModel):

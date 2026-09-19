@@ -41,7 +41,7 @@ async def test_human_approval_workflow_e2e(e2e_client: AsyncClient, e2e_seeded_u
     async def mock_db_session():
         yield e2e_db_session
 
-    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_db_session):
+    with patch("app.database.connection.AsyncSessionLocal", mock_db_session):
         try:
             result = await graph_with_checkpointer.ainvoke(state, config)
         except Exception:
@@ -95,7 +95,7 @@ async def test_human_approval_rejection_e2e(e2e_client: AsyncClient, e2e_seeded_
     async def mock_db_session():
         yield e2e_db_session
 
-    with patch("app.agents.nodes.approval.AsyncSessionLocal", mock_db_session):
+    with patch("app.database.connection.AsyncSessionLocal", mock_db_session):
         try:
             result = await graph_with_checkpointer.ainvoke(state, config)
         except Exception:

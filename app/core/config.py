@@ -15,6 +15,10 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 # JWT signing algorithm
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
+# OAuth token encryption key (Fernet requires 32 url-safe base64-encoded bytes)
+# If not provided, it will dynamically generate a random one for dev, but tokens won't persist across restarts!
+OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY")
+
 # Access token lifetime in minutes
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
@@ -105,3 +109,23 @@ LANGCHAIN_TEMPERATURE = float(os.getenv("LANGCHAIN_TEMPERATURE", "0.2"))
 LANGCHAIN_MAX_TOKENS = int(os.getenv("LANGCHAIN_MAX_TOKENS", "1024"))
 LANGCHAIN_TOP_P = float(os.getenv("LANGCHAIN_TOP_P", "0.9"))
 LANGCHAIN_TOP_K = int(os.getenv("LANGCHAIN_TOP_K", "40"))
+
+# LinkedIn Configuration
+LINKEDIN_CLIENT_ID = os.getenv("LINKEDIN_CLIENT_ID", "")
+LINKEDIN_CLIENT_SECRET = os.getenv("LINKEDIN_CLIENT_SECRET", "")
+LINKEDIN_REDIRECT_URI = os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:8000/api/v1/integrations/linkedin/callback")
+
+# Facebook / Meta Configuration
+META_APP_ID = os.getenv("META_APP_ID", "")
+META_APP_SECRET = os.getenv("META_APP_SECRET", "")
+META_REDIRECT_URI = os.getenv("META_REDIRECT_URI", "http://localhost:8000/api/v1/integrations/facebook/callback")
+
+# Twitter / X Configuration
+TWITTER_CLIENT_ID = os.getenv("TWITTER_CLIENT_ID", "")
+TWITTER_CLIENT_SECRET = os.getenv("TWITTER_CLIENT_SECRET", "")
+TWITTER_REDIRECT_URI = os.getenv("TWITTER_REDIRECT_URI", "http://localhost:8000/api/v1/integrations/twitter/callback")
+
+# Scheduler Service Configuration
+SCHEDULER_ENABLED = os.getenv("SCHEDULER_ENABLED", "True").lower() == "true"
+SCHEDULER_INTERVAL_SECONDS = int(os.getenv("SCHEDULER_INTERVAL_SECONDS", "60"))
+SCHEDULER_MAX_RETRIES = int(os.getenv("SCHEDULER_MAX_RETRIES", "3"))

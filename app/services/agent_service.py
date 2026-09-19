@@ -4,7 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas.agent import AgentChatRequest, AgentChatResponse
 from app.agents.graph import build_marketing_graph
 from app.agents.checkpoint import get_checkpointer
-from app.agents.enums import AgentStatus
+from app.agents.enums import AgentStatus, ApprovalStatus
+from app.models.approval import ApprovalRequest
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -14,23 +16,32 @@ class AgentService:
         config = {"configurable": {"thread_id": request.thread_id}}
         
         async with get_checkpointer() as checkpointer:
-            graph = build_marketing_graph()
-            graph.checkpointer = checkpointer
-            
             try:
+                graph = build_marketing_graph()
+                graph.checkpointer = checkpointer
+                
                 # Check current state to see if it's paused for approval
                 state_snapshot = await graph.aget_state(config)
                 
                 if state_snapshot.values:
                     current_status = state_snapshot.values.get("status")
-                    if current_status == AgentStatus.WAITING_FOR_APPROVAL:
+                    approval_id = state_snapshot.values.get("approval_request_id")
+                    if not approval_id:
+                        stmt = select(ApprovalRequest.id).where(
+                            ApprovalRequest.thread_id == request.thread_id,
+                            ApprovalRequest.status == ApprovalStatus.PENDING
+                        )
+                        result = await db.execute(stmt)
+                        approval_id = result.scalar_one_or_none()
+                        
+                    if current_status == AgentStatus.WAITING_FOR_APPROVAL or approval_id:
                         logger.warning(f"Thread {request.thread_id} is waiting for approval.")
                         return AgentChatResponse(
                             status="approval_pending",
                             thread_id=request.thread_id,
                             final_response=None,
                             approval_required=True,
-                            approval_request_id=state_snapshot.values.get("approval_request_id")
+                            approval_request_id=approval_id
                         )
 
                 # Prepare the input
@@ -52,8 +63,28 @@ class AgentService:
                 logger.info(f"Invoking graph for thread {request.thread_id}")
                 result_state = await graph.ainvoke(input_data, config)
                 
+                # Check snapshot to see if interrupted
+                post_snapshot = await graph.aget_state(config)
+                
                 # Check the result state to determine the response
-                if result_state.get("status") == AgentStatus.WAITING_FOR_APPROVAL:
+                if post_snapshot.next and "request_human_approval" in post_snapshot.next:
+                    approval_id = post_snapshot.values.get("approval_request_id")
+                    if not approval_id:
+                        stmt = select(ApprovalRequest.id).where(
+                            ApprovalRequest.thread_id == request.thread_id,
+                            ApprovalRequest.status == ApprovalStatus.PENDING
+                        )
+                        result = await db.execute(stmt)
+                        approval_id = result.scalar_one_or_none()
+                    
+                    return AgentChatResponse(
+                        status="approval_pending",
+                        thread_id=request.thread_id,
+                        final_response=None,
+                        approval_required=True,
+                        approval_request_id=approval_id
+                    )
+                elif result_state.get("status") == AgentStatus.WAITING_FOR_APPROVAL:
                     return AgentChatResponse(
                         status="approval_pending",
                         thread_id=request.thread_id,
@@ -78,6 +109,9 @@ class AgentService:
                 )
 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"Exception in process_request: {e}")
                 logger.exception(f"Error executing agent workflow for thread {request.thread_id}: {str(e)}")
                 return AgentChatResponse(
                     status="failed",

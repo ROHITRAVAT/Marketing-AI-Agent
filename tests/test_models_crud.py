@@ -62,8 +62,10 @@ async def test_models_crud_flow(test_engine):
 
         # ── Create scheduled post ────────────────────────────────────────────
         sp = ScheduledPost(
+            user_id=user.id,
             campaign_id=campaign.id,
             prompt_id=prompt.id,
+            platform="linkedin",
             scheduled_time=datetime.utcnow(),
         )
         session.add(sp)
