@@ -7,7 +7,7 @@ When a live PostgreSQL instance IS running these same tests prove the
 models are compatible with Postgres too — just point the engine at it.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 import pytest
 from sqlalchemy import text
@@ -66,7 +66,7 @@ async def test_models_crud_flow(test_engine):
             campaign_id=campaign.id,
             prompt_id=prompt.id,
             platform="linkedin",
-            scheduled_time=datetime.utcnow(),
+            scheduled_time=datetime.now(timezone.utc),
         )
         session.add(sp)
         await session.commit()

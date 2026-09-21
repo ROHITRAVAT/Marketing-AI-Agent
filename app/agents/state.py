@@ -9,6 +9,8 @@ from app.agents.schemas import (
     ReviewResult,
     ToolResult,
     ErrorInfo,
+    LLMExecution,
+    VerificationStatus,
 )
 
 
@@ -70,3 +72,7 @@ class MarketingAgentState(BaseModel):
 
     # Final Response
     final_response: str | None = None
+
+    # LLM Verification
+    llm_execution: LLMExecution | None = None
+    verification: VerificationStatus | None = None

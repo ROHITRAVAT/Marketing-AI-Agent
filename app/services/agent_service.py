@@ -102,10 +102,18 @@ class AgentService:
                     )
 
                 # Completed
+                gen_content = result_state.get("generated_content")
+                gen_body = gen_content.body if hasattr(gen_content, "body") else (gen_content.get("body") if isinstance(gen_content, dict) else None)
+                
+                verification_obj = result_state.get("verification")
+                verification_dict = verification_obj.model_dump() if hasattr(verification_obj, "model_dump") else (verification_obj if isinstance(verification_obj, dict) else None)
+
                 return AgentChatResponse(
                     status="completed",
                     thread_id=request.thread_id,
-                    final_response=result_state.get("final_response")
+                    final_response=result_state.get("final_response"),
+                    generated_content=gen_body,
+                    verification=verification_dict
                 )
 
             except Exception as e:

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 from app.agents.state import MarketingAgentState
 from app.agents.nodes.strategy import generate_strategy

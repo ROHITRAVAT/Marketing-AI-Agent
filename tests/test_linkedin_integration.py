@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.linkedin_service import LinkedInService
 from app.models.integration import IntegrationConnection
 from app.core.errors import SocialMediaAPIError
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 @pytest.mark.asyncio
 async def test_publish_post_success():
@@ -17,7 +17,7 @@ async def test_publish_post_success():
         provider="linkedin",
         access_token="valid_token",
         provider_user_id="li_user_123",
-        expires_at=datetime.utcnow() + timedelta(days=1)
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1)
     )
     
     with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post, \

@@ -25,7 +25,8 @@ async def get_checkpointer():
             kwargs={
                 "autocommit": True,
                 "prepare_threshold": 0,
-            }
+            },
+            open=False
         )
         await _pool.open()
         
@@ -51,7 +52,8 @@ async def setup_checkpointer():
             kwargs={
                 "autocommit": True,
                 "prepare_threshold": 0,
-            }
+            },
+            open=False
         )
         await _pool.open()
     

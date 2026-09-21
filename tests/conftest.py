@@ -267,7 +267,7 @@ def mock_social_platforms():
                 "likes": 10, "comments": 5, "shares": 2, "impressions": 2000, "clicks": 15, "engagement": 150
             })
             
-        mock_get(self, *args, **kwargs)  # Record the call for assertions
+        await mock_get(self, *args, **kwargs)  # Record the call for assertions
         return mock_resp
 
     async def mock_post_side_effect(self, *args, **kwargs):
@@ -278,7 +278,7 @@ def mock_social_platforms():
         mock_resp.status_code = 200
         mock_resp.json = MagicMock(return_value={"id": "mock_external_id_123"})
         
-        mock_post(self, *args, **kwargs)  # Record the call for assertions
+        await mock_post(self, *args, **kwargs)  # Record the call for assertions
         return mock_resp
             
     with patch("httpx.AsyncClient.post", new=mock_post_side_effect), \

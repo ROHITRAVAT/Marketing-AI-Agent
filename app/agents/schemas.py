@@ -45,3 +45,29 @@ class ReviewResult(BaseModel):
     score: float = Field(ge=0, le=10)
     feedback: str | None = None
     issues: list[str] = Field(default_factory=list)
+
+class LLMExecution(BaseModel):
+    llm_called: bool = False
+    provider: str | None = None
+    model: str | None = None
+    prompt_sent: str | None = None
+    raw_llm_response: str | None = None
+    response_received: bool = False
+    response_used_as_final: bool = False
+    execution_id: str | None = None
+    node_name: str | None = None
+
+class VerificationStatus(BaseModel):
+    verification_status: str = "UNVERIFIED"
+    confidence: float = 0.0
+    llm_invoked: bool | None = None
+    response_received: bool | None = None
+    response_used_as_final: bool | None = None
+    provider: str | None = None
+    model: str | None = None
+    node: str | None = None
+    hardcoded_content_detected: bool | None = None
+    mock_content_detected: bool | None = None
+    fallback_content_detected: bool | None = None
+    evidence: list[str] = Field(default_factory=list)
+    issues: list[str] = Field(default_factory=list)

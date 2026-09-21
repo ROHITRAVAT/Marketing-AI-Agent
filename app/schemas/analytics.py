@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class SocialAnalyticsBase(BaseModel):
     platform: str
@@ -24,8 +24,7 @@ class SocialAnalyticsResponse(SocialAnalyticsBase):
     scheduled_post_id: Optional[int] = None
     collected_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class AnalyticsSummaryRequest(BaseModel):
     start_date: date

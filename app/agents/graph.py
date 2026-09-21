@@ -12,6 +12,7 @@ from app.agents.nodes.retrieval import retrieve_documents
 from app.agents.nodes.strategy import generate_strategy
 from app.agents.nodes.planning import create_plan
 from app.agents.nodes.content import generate_content
+from app.agents.nodes.verification import verify_llm_output
 from app.agents.nodes.review import review_content
 from app.agents.nodes.approval import request_human_approval
 from app.agents.nodes.tools import execute_tools
@@ -40,6 +41,7 @@ def build_marketing_graph():
     graph.add_node("generate_strategy", generate_strategy)
     graph.add_node("create_plan", create_plan)
     graph.add_node("generate_content", generate_content)
+    graph.add_node("verify_llm_output", verify_llm_output)
     graph.add_node("review_content", review_content)
     graph.add_node("request_human_approval", request_human_approval)
     graph.add_node("execute_tools", execute_tools)
@@ -75,7 +77,8 @@ def build_marketing_graph():
 
     # Sequential edge
     graph.add_edge("create_plan", "generate_content")
-    graph.add_edge("generate_content", "review_content")
+    graph.add_edge("generate_content", "verify_llm_output")
+    graph.add_edge("verify_llm_output", "review_content")
 
     # Review routing
     graph.add_conditional_edges(
