@@ -27,3 +27,15 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+# Debug/test artifacts - never commit
+fix_*.py
+patch_*.py
+temp_*.py
+debug_*.py
+print_*.py
+check_*.py
+revert_*.py
+modify_*.py
+unfix_*.py
+test_db.sqlite
+pytest_report*.txt
