@@ -18,9 +18,9 @@ qdrant-client==1.19.0
 httpx==0.28.1
 
 # LangChain (prompt templates, output parsers, and Ollama chat wrappers)
-langchain-core==0.3.66
+langchain-core==0.3.76
 langchain-community==0.3.27
-langchain-ollama==1.1.0
+langchain-ollama==0.3.10
 
 # LangGraph (stateful orchestration for agent workflows)
 langgraph==0.3.34
