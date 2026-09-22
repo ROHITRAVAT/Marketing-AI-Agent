@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Plus,
   Search,
@@ -9,23 +9,22 @@ import {
   Pause,
   X,
 } from 'lucide-react';
-import { useCampaignStore, type CampaignFormData } from '@/store/useCampaignStore';
+import type { Campaign } from '@/types';
+import { campaignService } from '@/services/campaignService';
+import type { CampaignFormData } from '@/store/useCampaignStore';
+import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 const AVAILABLE_CHANNELS = ['LinkedIn', 'Twitter/X', 'Instagram', 'Facebook'];
 
 export const CampaignsPage: React.FC = () => {
-  const {
-    campaigns,
-    searchQuery,
-    statusFilter,
-    setSearchQuery,
-    setStatusFilter,
-    addCampaign,
-    updateCampaign,
-    deleteCampaign,
-  } = useCampaignStore();
+  const user = useAuthStore((state) => state.user);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -41,6 +40,28 @@ export const CampaignsPage: React.FC = () => {
     end_date: '',
     channels: ['LinkedIn'],
   });
+
+  const loadCampaigns = async () => {
+    setIsLoading(true);
+    try {
+      const response = await campaignService.listCampaigns({
+        status: statusFilter,
+        search: searchQuery,
+        size: 100,
+      });
+      setCampaigns(response.items);
+      setServerError(null);
+    } catch (error) {
+      console.error('Failed to load campaigns', error);
+      setServerError('Unable to load campaigns from the server.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadCampaigns();
+  }, [statusFilter, searchQuery]);
 
   const openCreateModal = () => {
     setEditingId(null);
@@ -67,7 +88,7 @@ export const CampaignsPage: React.FC = () => {
       budget: c.budget || 0,
       start_date: c.start_date || '',
       end_date: c.end_date || '',
-      channels: c.channels || ['LinkedIn'],
+      channels: ['LinkedIn'],
     });
     setIsModalOpen(true);
   };
@@ -81,16 +102,21 @@ export const CampaignsPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
     if (editingId) {
-      updateCampaign(editingId, formData);
+      await campaignService.updateCampaign(editingId, formData);
     } else {
-      addCampaign(formData);
+      if (!user) {
+        setServerError('Your session is missing. Please sign in again.');
+        return;
+      }
+      await campaignService.createCampaign(formData, user.id);
     }
     setIsModalOpen(false);
+    await loadCampaigns();
   };
 
   // Filtering
@@ -150,6 +176,12 @@ export const CampaignsPage: React.FC = () => {
       </div>
 
       {/* Campaigns Grid */}
+      {serverError && (
+        <div className="rounded-xl bg-rose-50 border border-rose-200 p-3 text-sm text-rose-800">{serverError}</div>
+      )}
+
+      {isLoading && <div className="text-sm text-[#71717A]">Loading campaigns...</div>}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {filteredCampaigns.map((c) => (
           <div
@@ -185,11 +217,10 @@ export const CampaignsPage: React.FC = () => {
               {/* Status Toggle & Actions */}
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
-                  onClick={() =>
-                    updateCampaign(c.id, {
-                      status: c.status === 'active' ? 'paused' : 'active',
-                    })
-                  }
+                  onClick={async () => {
+                    await campaignService.updateStatus(c.id, c.status === 'active' ? 'paused' : 'active');
+                    await loadCampaigns();
+                  }}
                   title={c.status === 'active' ? 'Pause Campaign' : 'Resume Campaign'}
                   className="p-1.5 rounded-lg bg-[#F8F8F6] border border-[#E8E8E3] hover:bg-[#F3F3EE] text-[#52525B] hover:text-[#18181B] transition-colors"
                 >
@@ -203,7 +234,10 @@ export const CampaignsPage: React.FC = () => {
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => deleteCampaign(c.id)}
+                  onClick={async () => {
+                    await campaignService.deleteCampaign(c.id);
+                    await loadCampaigns();
+                  }}
                   title="Delete Campaign"
                   className="p-1.5 rounded-lg bg-[#F8F8F6] border border-[#E8E8E3] hover:bg-rose-50 text-[#71717A] hover:text-rose-600 transition-colors"
                 >
@@ -228,21 +262,16 @@ export const CampaignsPage: React.FC = () => {
               </div>
               <div>
                 <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Audience Reach:</span>
-                <span className="text-emerald-700 font-bold">{c.reach ? c.reach.toLocaleString() : '0'}</span>
+                <span className="text-[#71717A] font-medium">Not available</span>
               </div>
             </div>
 
             {/* Channels & Footer */}
             <div className="flex items-center justify-between pt-3 border-t border-[#F2F2ED] text-xs">
               <div className="flex flex-wrap gap-1.5">
-                {c.channels?.map((channel) => (
-                  <span
-                    key={channel}
-                    className="px-2 py-0.5 rounded bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC] text-[10px] font-mono uppercase"
-                  >
-                    {channel}
-                  </span>
-                ))}
+                <span className="px-2 py-0.5 rounded bg-[#F3F3EE] text-[#71717A] border border-[#E4E4DC] text-[10px] font-mono uppercase">
+                  Channels unavailable
+                </span>
               </div>
               <span className="text-[11px] font-mono text-[#A1A1AA]">Active Tracking</span>
             </div>

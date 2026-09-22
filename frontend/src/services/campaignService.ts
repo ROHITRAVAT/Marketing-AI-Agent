@@ -34,8 +34,9 @@ export const campaignService = {
   /**
    * Create campaign via backend API
    */
-  async createCampaign(data: CampaignFormData): Promise<Campaign> {
+  async createCampaign(data: CampaignFormData, userId: number): Promise<Campaign> {
     const response = await api.post<Campaign>('/campaigns/', {
+      user_id: userId,
       name: data.name,
       description: data.description,
       status: data.status,
