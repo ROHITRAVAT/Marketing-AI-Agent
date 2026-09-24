@@ -4,17 +4,42 @@ import {
   Eye,
   MousePointer,
   Download,
-  DollarSign,
-  ArrowUpRight,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { analyticsService, type AnalyticsSummaryResponse } from '@/services/analytics';
+import {
+  analyticsService,
+  type AnalyticsSummaryResponse,
+  type SocialAnalyticsResponse,
+  type ScheduledPostResponse,
+} from '@/services/analytics';
+
+interface TopPost {
+  id: number;
+  title: string;
+  channel: string;
+  impressions: number;
+  clicks: number;
+  engagement: number;
+  date: string;
+}
+
+const toTopPost = (post: ScheduledPostResponse, analytics: SocialAnalyticsResponse): TopPost => ({
+  id: post.id,
+  title: post.content?.split('\n')[0]?.slice(0, 120) || `Published ${post.platform} post`,
+  channel: post.platform,
+  impressions: analytics.impressions || 0,
+  clicks: analytics.clicks || 0,
+  engagement: analytics.impressions
+    ? ((analytics.engagement || 0) / analytics.impressions) * 100
+    : 0,
+  date: post.published_at ? new Date(post.published_at).toLocaleDateString() : 'Unknown',
+});
 
 export const AnalyticsPage: React.FC = () => {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [data, setData] = useState<AnalyticsSummaryResponse | null>(null);
+  const [topPosts, setTopPosts] = useState<TopPost[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -31,8 +56,35 @@ export const AnalyticsPage: React.FC = () => {
           today.toISOString().split('T')[0]
         );
         setData(summary);
+
+        const publishedPosts = await analyticsService.listPublishedPosts();
+        const postsWithAnalytics = await Promise.all(
+          publishedPosts
+            .filter((post) => {
+              if (!post.external_post_id || !post.published_at) return false;
+              const publishedAt = new Date(post.published_at).getTime();
+              return publishedAt >= past.getTime() && publishedAt <= today.getTime();
+            })
+            .map(async (post) => {
+              try {
+                const snapshots = await analyticsService.getPostAnalytics(post.external_post_id!);
+                return { post, analytics: snapshots[0] };
+              } catch {
+                return { post, analytics: undefined };
+              }
+            })
+        );
+
+        setTopPosts(
+          postsWithAnalytics
+            .filter(({ analytics }) => analytics)
+            .map(({ post, analytics }) => toTopPost(post, analytics!))
+            .sort((left, right) => right.engagement - left.engagement)
+            .slice(0, 10)
+        );
       } catch (error) {
         console.error('Failed to load analytics', error);
+        setTopPosts([]);
       } finally {
         setIsLoading(false);
       }
@@ -41,57 +93,42 @@ export const AnalyticsPage: React.FC = () => {
   }, [timeRange]);
 
   const handleExport = () => {
+    if (!data) return;
+
+    const rows = [
+      ['Metric', 'Value'],
+      ['Date range', `${data.start_date} to ${data.end_date}`],
+      ['Total impressions', data.overall_impressions],
+      ['Total clicks', totalClicks],
+      ['Average CTR', `${averageCTR}%`],
+      [],
+      ['Post', 'Platform', 'Impressions', 'Clicks', 'Engagement', 'Published'],
+      ...topPosts.map((post) => [
+        post.title,
+        post.channel,
+        post.impressions,
+        post.clicks,
+        `${post.engagement.toFixed(1)}%`,
+        post.date,
+      ]),
+    ];
+    const csv = rows
+      .map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(','))
+      .join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `analytics-${timeRange}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
     setDownloadSuccess(true);
     setTimeout(() => setDownloadSuccess(false), 3000);
   };
 
-  const topPosts = [
-    {
-      id: 1,
-      title: '5 AI Workflow Hacks that Saved us 20 Hours / Week',
-      channel: 'LinkedIn',
-      impressions: '42,800',
-      clicks: '2,140',
-      ctr: '5.0%',
-      engagement: '6.4%',
-      date: 'Sep 4, 2026',
-    },
-    {
-      id: 2,
-      title: 'Stop hardcoding prompts: The Autonomous Agent paradigm',
-      channel: 'Twitter/X',
-      impressions: '31,500',
-      clicks: '1,890',
-      ctr: '6.0%',
-      engagement: '7.8%',
-      date: 'Sep 2, 2026',
-    },
-    {
-      id: 3,
-      title: 'Behind the Scenes: Training Qwen 3 on Brand Voice Guidelines',
-      channel: 'LinkedIn',
-      impressions: '19,200',
-      clicks: '980',
-      ctr: '5.1%',
-      engagement: '4.9%',
-      date: 'Aug 29, 2026',
-    },
-    {
-      id: 4,
-      title: 'Viral Hook Breakdown: 10 Carousel slides for SaaS founders',
-      channel: 'Instagram',
-      impressions: '28,400',
-      clicks: '1,420',
-      ctr: '5.0%',
-      engagement: '9.2%',
-      date: 'Aug 26, 2026',
-    },
-  ];
-
   const totalImpressions = data?.overall_impressions || 0;
 
   const totalClicks = data?.platforms?.reduce((acc, p) => acc + p.total_clicks, 0) || 0;
-  const averageCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : "0.0";
+  const averageCTR = totalImpressions > 0 ? ((totalClicks / totalImpressions) * 100).toFixed(1) : '0.0';
   
   const channelMetrics = data?.platforms?.map(p => ({
     name: p.platform,
@@ -102,6 +139,11 @@ export const AnalyticsPage: React.FC = () => {
          : p.platform === 'instagram' ? 'bg-pink-500' 
          : 'bg-blue-500'
   })) || [];
+
+  const largestChannel = channelMetrics.reduce((largest, channel) =>
+    channel.percentage > largest.percentage ? channel : largest,
+    { name: 'No channel', percentage: 0, reach: '0' }
+  );
 
   return (
     <div className="space-y-8 text-[#18181B]">
@@ -153,9 +195,6 @@ export const AnalyticsPage: React.FC = () => {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tracking-tight text-[#18181B]">{isLoading ? '-' : totalImpressions.toLocaleString()}</span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
-              <ArrowUpRight className="w-3 h-3" /> +0.0%
-            </span>
           </div>
           <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Analyzed {data?.total_posts_analyzed || 0} posts</p>
         </div>
@@ -169,9 +208,6 @@ export const AnalyticsPage: React.FC = () => {
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold tracking-tight text-[#18181B]">{isLoading ? '-' : totalClicks.toLocaleString()}</span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
-              <ArrowUpRight className="w-3 h-3" /> +0.0%
-            </span>
           </div>
           <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Average CTR: {isLoading ? '-' : averageCTR}%</p>
         </div>
@@ -184,28 +220,22 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold tracking-tight text-[#18181B]">642</span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
-              <ArrowUpRight className="w-3 h-3" /> +31.5%
-            </span>
+            <span className="text-lg font-bold tracking-tight text-[#71717A]">Coming soon</span>
           </div>
-          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Cost per Lead: $14.20</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Not provided by the analytics API</p>
         </div>
 
         <div className="bg-white border border-[#E8E8E3] rounded-2xl p-5 shadow-xs flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
             <span>Return on Ad Spend</span>
             <div className="w-8 h-8 rounded-xl bg-[#F8F8F6] border border-[#E8E8E3] flex items-center justify-center text-amber-700">
-              <DollarSign className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-bold tracking-tight text-[#18181B]">4.2x</span>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center">
-              <ArrowUpRight className="w-3 h-3" /> +0.6x
-            </span>
+            <span className="text-lg font-bold tracking-tight text-[#71717A]">Coming soon</span>
           </div>
-          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Target benchmark: 3.5x</p>
+          <p className="text-xs text-[#71717A] pt-2 border-t border-[#F2F2ED]">Ad spend and revenue data are not available</p>
         </div>
       </div>
 
@@ -228,32 +258,26 @@ export const AnalyticsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* SVG Line / Bar Chart Simulation */}
+          {/* Real channel totals are available; daily history is not exposed yet. */}
           <div className="h-56 flex items-end justify-between gap-2 pt-6 border-b border-[#F2F2ED] pb-2">
-            {[45, 62, 58, 78, 85, 92, 88, 95, 110, 105, 125, 140].map((val, idx) => (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-1.5 group">
+            {channelMetrics.map((channel) => (
+              <div key={channel.name} className="flex-1 flex flex-col items-center gap-1.5 group">
                 <div className="w-full flex justify-center gap-1 items-end h-44">
-                  {/* Impressions bar */}
                   <div
-                    style={{ height: `${(val / 140) * 100}%` }}
+                    style={{ height: `${channel.percentage}%` }}
                     className="w-full max-w-[14px] bg-[#18181B] hover:bg-[#27272A] rounded-t transition-all"
-                  />
-                  {/* Clicks bar */}
-                  <div
-                    style={{ height: `${(val / 140) * 35}%` }}
-                    className="w-full max-w-[14px] bg-emerald-600 hover:bg-emerald-500 rounded-t transition-all"
                   />
                 </div>
                 <span className="text-[10px] font-mono text-[#A1A1AA] group-hover:text-[#18181B] transition-colors">
-                  W{idx + 1}
+                  {channel.name}
                 </span>
               </div>
             ))}
           </div>
 
           <div className="flex items-center justify-between text-xs text-[#71717A]">
-            <span>Peak performance: Week 12 (+140k impressions)</span>
-            <span className="text-emerald-700 font-semibold">Consistently outperforming baseline</span>
+            <span>Channel totals for the selected timeframe</span>
+            <span className="text-[#52525B] font-semibold">Daily trend data coming soon</span>
           </div>
         </div>
 
@@ -284,11 +308,11 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           <div className="rounded-xl bg-[#F8F8F6] p-4 border border-[#E8E8E3] text-xs space-y-1">
-            <span className="text-[#18181B] font-semibold flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" /> AI Channel Insight:
-            </span>
+            <span className="text-[#18181B] font-semibold">Channel summary</span>
             <p className="text-[#52525B] leading-relaxed">
-              LinkedIn delivers our highest B2B conversion rate (6.2%), while Instagram drives the lowest cost-per-click ($0.42).
+              {largestChannel.percentage > 0
+                ? `${largestChannel.name} has the largest share of recorded impressions at ${largestChannel.percentage}%.`
+                : 'No channel analytics are available for this timeframe.'}
             </p>
           </div>
         </div>
@@ -299,7 +323,7 @@ export const AnalyticsPage: React.FC = () => {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-base font-bold text-[#18181B]">Top Performing Marketing Content</h3>
-            <p className="text-xs text-[#71717A]">Generated posts with highest viral coefficient and click-through</p>
+            <p className="text-xs text-[#71717A]">Published posts with collected analytics, ranked by engagement rate</p>
           </div>
           <span className="text-[10px] font-mono uppercase font-semibold px-2.5 py-1 rounded bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
             Ranked by Engagement
@@ -328,13 +352,22 @@ export const AnalyticsPage: React.FC = () => {
                       {post.channel}
                     </span>
                   </td>
-                  <td className="py-3 px-4 font-mono">{post.impressions}</td>
-                  <td className="py-3 px-4 font-mono">{post.clicks}</td>
-                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">{post.ctr}</td>
-                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">{post.engagement}</td>
+                  <td className="py-3 px-4 font-mono">{post.impressions.toLocaleString()}</td>
+                  <td className="py-3 px-4 font-mono">{post.clicks.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">
+                    {post.impressions ? `${((post.clicks / post.impressions) * 100).toFixed(1)}%` : '0.0%'}
+                  </td>
+                  <td className="py-3 px-4 text-emerald-700 font-bold font-mono">{post.engagement.toFixed(1)}%</td>
                   <td className="py-3 px-4 text-[#71717A]">{post.date}</td>
                 </tr>
               ))}
+              {!isLoading && topPosts.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-8 px-4 text-center text-[#71717A]">
+                    No published posts with collected analytics are available for this timeframe.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -39,6 +39,16 @@ export interface SocialAnalyticsResponse {
   collected_at: string;
 }
 
+export interface ScheduledPostResponse {
+  id: number;
+  platform: string;
+  content?: string;
+  scheduled_time: string;
+  status: string;
+  published_at?: string;
+  external_post_id?: string;
+}
+
 export const analyticsService = {
   getSummary: async (
     startDate: string,
@@ -59,6 +69,13 @@ export const analyticsService = {
 
   getPostAnalytics: async (postId: string): Promise<SocialAnalyticsResponse[]> => {
     const response = await api.get(`/api/v1/analytics/posts/${postId}`);
+    return response.data;
+  },
+
+  listPublishedPosts: async (): Promise<ScheduledPostResponse[]> => {
+    const response = await api.get<ScheduledPostResponse[]>('/scheduled-posts/', {
+      params: { status_filter: 'published' },
+    });
     return response.data;
   },
 };
