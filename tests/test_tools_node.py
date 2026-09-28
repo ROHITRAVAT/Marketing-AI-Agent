@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, patch, MagicMock
 
 from app.agents.nodes.tools import execute_tools
 from app.agents.schemas import PlanStep, GeneratedContent
@@ -43,6 +43,7 @@ async def test_execute_tools_dispatches_social_media_step():
     mock_chain.ainvoke.return_value = "Post 1: Run faster today!"
 
     mock_db = AsyncMock()
+    mock_db.add = MagicMock()
     mock_db.__aenter__.return_value = mock_db
 
     with patch("app.agents.nodes.tools.build_social_media_chain", return_value=mock_chain), \
