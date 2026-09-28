@@ -254,7 +254,7 @@ export const SettingsPage: React.FC = () => {
                   onChange={(e) => setModel(e.target.value)}
                   className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl p-2.5 text-xs sm:text-sm text-[#18181B] focus:outline-none transition-all"
                 >
-                  <option value="qwen3:latest">Qwen 3 (Local Ollama - High Speed)</option>
+                  <option value="qwen3:latest">Qwen 3 8B (Local Ollama)</option>
                   <option value="llama3.3:70b">Llama 3.3 70B (Enterprise Reasoning)</option>
                   <option value="deepseek-r1:latest">DeepSeek R1 (Strategic Planning)</option>
                   <option value="gpt-4o">GPT-4o (Cloud API)</option>
