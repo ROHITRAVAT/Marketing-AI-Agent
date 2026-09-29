@@ -66,7 +66,7 @@ export const ChatPage: React.FC = () => {
                 Online
               </span>
             </h2>
-            <p className="text-xs text-[#71717A]">Qwen 3 + LangGraph Autonomous Agent</p>
+            <p className="text-xs text-[#71717A]">Qwen 3 8B + LangGraph Autonomous Agent</p>
           </div>
         </div>
 

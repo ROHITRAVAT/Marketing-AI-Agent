@@ -29,8 +29,17 @@ PASSWORD_RESET_TOKEN_EXPIRE_MINUTES = int(
     os.getenv("PASSWORD_RESET_TOKEN_EXPIRE_MINUTES", "30")
 )
 
-# Comma-separated list of allowed CORS origins
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+# Comma-separated list of allowed CORS origins.
+# Vite commonly runs on 127.0.0.1 and localhost depending on the browser host,
+# so allow both during local development.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173",
+    ).split(",")
+    if origin.strip()
+]
 
 # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

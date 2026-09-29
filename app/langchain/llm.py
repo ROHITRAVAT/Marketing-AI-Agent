@@ -30,6 +30,8 @@ def build_chat_model(
         num_predict=LANGCHAIN_SETTINGS.max_tokens if max_tokens is None else max_tokens,
         top_p=LANGCHAIN_SETTINGS.top_p if top_p is None else top_p,
         top_k=LANGCHAIN_SETTINGS.top_k if top_k is None else top_k,
+        reasoning=False,    # Disable qwen3 thinking/reasoning mode — avoids <think> tag wrapping that breaks JSON/structured output parsing
+        keep_alive="5m",    # Keep model warm to avoid cold-start delays between requests
     )
 
 
