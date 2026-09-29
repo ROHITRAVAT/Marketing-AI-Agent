@@ -13,6 +13,11 @@ async def test_strategy_failure_stops_graph(monkeypatch):
     3. Does not execute content generation
     """
 
+    async def mock_analyze(state: MarketingAgentState) -> dict:
+        return {
+            "analysis": "Mocked analysis"
+        }
+
     async def mock_retrieval(state: MarketingAgentState) -> dict:
         return {"retrieved_documents": []}
 
@@ -30,6 +35,7 @@ async def test_strategy_failure_stops_graph(monkeypatch):
             "generate_content should not run after strategy failure"
         )
 
+    monkeypatch.setattr("app.agents.graph.analyze_request", mock_analyze)
     monkeypatch.setattr("app.agents.graph.retrieve_documents", mock_retrieval)
     monkeypatch.setattr("app.agents.graph.generate_strategy", failing_strategy)
     monkeypatch.setattr("app.agents.graph.generate_content", content_should_not_run)
