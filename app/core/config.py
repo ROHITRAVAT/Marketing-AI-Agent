@@ -138,3 +138,37 @@ TWITTER_REDIRECT_URI = os.getenv("TWITTER_REDIRECT_URI", "http://localhost:8000/
 SCHEDULER_ENABLED = os.getenv("SCHEDULER_ENABLED", "True").lower() == "true"
 SCHEDULER_INTERVAL_SECONDS = int(os.getenv("SCHEDULER_INTERVAL_SECONDS", "60"))
 SCHEDULER_MAX_RETRIES = int(os.getenv("SCHEDULER_MAX_RETRIES", "3"))
+
+# Fail-Fast Configuration Validation
+def validate_configuration():
+    if not OLLAMA_MODEL or not OLLAMA_MODEL.strip():
+        raise ValueError(
+            "Configuration validation failed:\n"
+            "OLLAMA_MODEL must be set to a non-empty value."
+        )
+
+    is_docker = os.path.exists("/.dockerenv")
+    if not is_docker:
+        try:
+            with open("/proc/1/cgroup", "rt") as f:
+                if "docker" in f.read() or "kubepods" in f.read():
+                    is_docker = True
+        except Exception:
+            pass
+
+    if is_docker and DATABASE_URL:
+        from urllib.parse import urlparse
+        try:
+            parsed = urlparse(DATABASE_URL)
+            hostname = parsed.hostname
+            if hostname in ("localhost", "127.0.0.1", "::1"):
+                raise ValueError(
+                    "Configuration validation failed:\n"
+                    "DATABASE_URL points to localhost while the application is running inside a container.\n"
+                    "Use the Docker Compose service name (for example, 'postgres') instead of localhost."
+                )
+        except ValueError as e:
+            if "Configuration validation failed" in str(e):
+                raise
+
+validate_configuration()
