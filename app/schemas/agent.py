@@ -1,9 +1,13 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 class AgentChatRequest(BaseModel):
     thread_id: str = Field(..., description="Unique identifier for the conversation thread")
     message: str = Field(..., min_length=1, description="The user's input message")
+    mode: Literal["workflow", "copilot"] = Field(
+        "workflow",
+        description="Use copilot for open-ended chat or workflow for structured campaigns",
+    )
     
     # Optional context overrides
     product: Optional[str] = Field(None, description="The product being marketed")
