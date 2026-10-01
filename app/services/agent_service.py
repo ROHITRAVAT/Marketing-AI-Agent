@@ -6,13 +6,34 @@ from app.agents.graph import build_marketing_graph
 from app.agents.checkpoint import get_checkpointer
 from app.agents.enums import AgentStatus, ApprovalStatus
 from app.models.approval import ApprovalRequest
+from app.langchain.llm import build_chat_model
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
+
+def _is_casual_message(message: str) -> bool:
+    normalized = message.strip().lower().rstrip("!?.")
+    return normalized in {"hi", "hello", "hey", "hiya", "good morning", "good afternoon", "good evening"}
+
 class AgentService:
     @staticmethod
     async def chat(db: AsyncSession, user_id: int, request: AgentChatRequest) -> AgentChatResponse:
+        if request.mode == "copilot" or _is_casual_message(request.message):
+            model = build_chat_model()
+            response = await model.ainvoke([
+                (
+                    "system",
+                    "You are Marketing Copilot, a helpful general-purpose AI assistant with strong marketing expertise. Answer every user question directly and naturally. You can discuss general topics, explain concepts, brainstorm, write and improve content, and create complete marketing plans. Do not require product, audience, platform, or campaign fields before answering. Ask a follow-up only when it genuinely improves the answer. Keep answers clear and practical.",
+                ),
+                ("human", request.message),
+            ])
+            return AgentChatResponse(
+                status="completed",
+                thread_id=request.thread_id,
+                final_response=str(response.content),
+            )
+
         config = {"configurable": {"thread_id": request.thread_id}}
         
         async with get_checkpointer() as checkpointer:

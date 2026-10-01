@@ -3,6 +3,7 @@ import api from './api';
 export interface AgentChatRequest {
   thread_id: string;
   message: string;
+  mode?: 'workflow' | 'copilot';
   product?: string;
   target_audience?: string;
   platform?: string;
@@ -35,7 +36,10 @@ export interface ApprovalResponse {
 
 export const agentService = {
   chat: async (data: AgentChatRequest): Promise<AgentChatResponse> => {
-    const response = await api.post<AgentChatResponse>('/agent/chat', data);
+    const response = await api.post<AgentChatResponse>('/agent/chat', {
+      ...data,
+      mode: data.mode || 'copilot',
+    });
     return response.data;
   },
 
