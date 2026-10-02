@@ -45,7 +45,10 @@ jobs:
           TEST_PG_AVAILABLE: "false"
           DATABASE_URL: "sqlite+aiosqlite:///:memory:"
         run: |
-          pytest tests/ -m "not integration and not e2e" -v
+          pytest tests/ \
+            --ignore=tests/integration \
+            --ignore=tests/e2e \
+            -v
 
       - name: Run Integration Tests
         env:
