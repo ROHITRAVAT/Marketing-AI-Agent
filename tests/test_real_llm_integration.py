@@ -13,12 +13,11 @@ pytestmark = pytest.mark.real_llm
 
 def get_installed_ollama_models():
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
-        if result.returncode != 0:
-            return []
-        lines = result.stdout.strip().split('\n')[1:]
-        models = [line.split()[0] for line in lines if line.strip()]
-        return models
+        response = httpx.get(
+            f"{LANGCHAIN_SETTINGS.base_url.rstrip('/')}/api/tags", timeout=5.0
+        )
+        response.raise_for_status()
+        return [m["name"] for m in response.json().get("models", [])]
     except Exception:
         return []
 
@@ -40,12 +39,13 @@ async def is_ollama_reachable(url: str) -> bool:
 
 @pytest.fixture
 async def check_ollama():
-    """Fixture to check Ollama availability and fallback to mock if unavailable."""
     url = LANGCHAIN_SETTINGS.base_url
-    if await is_ollama_reachable(url):
-        gen_model = get_generative_model()
-        if gen_model:
-            return gen_model
+    if not await is_ollama_reachable(url):
+        pytest.skip(f"Ollama server is not available at the configured endpoint: {url}")
+    gen_model = get_generative_model()
+    if not gen_model:
+        pytest.skip("No generative Ollama model is installed.")
+    return gen_model
             
     # Fallback to mock if Ollama is not available
     return "mocked-model"
