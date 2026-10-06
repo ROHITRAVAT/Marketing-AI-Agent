@@ -6,7 +6,10 @@ from app.agents.graph import build_marketing_graph
 from app.agents.checkpoint import get_checkpointer
 from app.agents.enums import AgentStatus, ApprovalStatus
 from app.models.approval import ApprovalRequest
+from app.models.agent_job import AgentJob
+from app.database.connection import AsyncSessionLocal
 from app.langchain.llm import build_chat_model
+import asyncio
 from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
@@ -18,7 +21,68 @@ def _is_casual_message(message: str) -> bool:
 
 class AgentService:
     @staticmethod
-    async def chat(db: AsyncSession, user_id: int, request: AgentChatRequest) -> AgentChatResponse:
+    async def submit_chat_job(db: AsyncSession, user_id: int, request: AgentChatRequest) -> dict:
+        from app.schemas.agent import AgentChatJobResponse
+        job = AgentJob(
+            user_id=user_id,
+            thread_id=request.thread_id,
+            status="queued"
+        )
+        db.add(job)
+        await db.commit()
+        await db.refresh(job)
+        
+        # Schedule the background task
+        asyncio.create_task(AgentService._run_chat_job(job.id, user_id, request))
+        
+        return AgentChatJobResponse(job_id=job.id, status="queued")
+
+    @staticmethod
+    async def get_job_status(db: AsyncSession, job_id: str):
+        from app.schemas.agent import AgentJobStatusResponse, AgentChatResponse
+        stmt = select(AgentJob).where(AgentJob.id == job_id)
+        result = await db.execute(stmt)
+        job = result.scalar_one_or_none()
+        if not job:
+            return None
+        
+        result_obj = None
+        if job.result:
+            result_obj = AgentChatResponse(**job.result)
+            
+        return AgentJobStatusResponse(
+            job_id=job.id,
+            status=job.status,
+            result=result_obj,
+            error=job.error
+        )
+
+    @staticmethod
+    async def _run_chat_job(job_id: str, user_id: int, request: AgentChatRequest):
+        async with AsyncSessionLocal() as db:
+            stmt = select(AgentJob).where(AgentJob.id == job_id)
+            result = await db.execute(stmt)
+            job = result.scalar_one_or_none()
+            if not job:
+                return
+            job.status = "running"
+            await db.commit()
+            
+            try:
+                response = await AgentService._execute_chat(db, user_id, request)
+                job.status = response.status
+                job.result = response.model_dump()
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                logger.exception(f"Error executing agent job {job_id}: {e}")
+                job.status = "failed"
+                job.error = str(e)
+            finally:
+                await db.commit()
+
+    @staticmethod
+    async def _execute_chat(db: AsyncSession, user_id: int, request: AgentChatRequest) -> AgentChatResponse:
         if request.mode == "copilot" or _is_casual_message(request.message):
             model = build_chat_model()
             response = await model.ainvoke([

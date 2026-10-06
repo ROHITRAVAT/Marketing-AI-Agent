@@ -11,44 +11,38 @@ import subprocess
 
 pytestmark = pytest.mark.real_llm
 
-def get_installed_ollama_models():
+async def get_installed_ollama_models(base_url: str):
     try:
-        result = subprocess.run(["ollama", "list"], capture_output=True, text=True, timeout=5)
-        if result.returncode != 0:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            url = f"{base_url.rstrip('/')}/api/tags"
+            response = await client.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                models = [model.get("name") for model in data.get("models", [])]
+                return models
             return []
-        lines = result.stdout.strip().split('\n')[1:]
-        models = [line.split()[0] for line in lines if line.strip()]
-        return models
     except Exception:
         return []
 
-def get_generative_model():
-    models = get_installed_ollama_models()
-    for m in models:
-        if "minilm" not in m.lower() and "embed" not in m.lower():
-            return m
-    return None
-
-async def is_ollama_reachable(url: str) -> bool:
-    """Check if the Ollama server is reachable."""
+@pytest.fixture
+async def check_ollama():
+    """Fixture to check Ollama availability and skip if unavailable."""
+    url = LANGCHAIN_SETTINGS.base_url
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(url)
-            return response.status_code == 200
-    except Exception:
-        return False
-
-@pytest.fixture
-async def check_ollama():
-    """Fixture to check Ollama availability and fallback to mock if unavailable."""
-    url = LANGCHAIN_SETTINGS.base_url
-    if await is_ollama_reachable(url):
-        gen_model = get_generative_model()
-        if gen_model:
-            return gen_model
-            
-    # Fallback to mock if Ollama is not available
-    return "mocked-model"
+            if response.status_code != 200:
+                pytest.skip(f"Ollama is unavailable at {url} (status: {response.status_code})")
+    except Exception as e:
+        pytest.skip(f"Ollama is unavailable at {url} (error: {str(e)})")
+        
+    models = await get_installed_ollama_models(url)
+    if "qwen3:8b" in models:
+        return "qwen3:8b"
+    elif not models:
+        pytest.skip(f"No models installed in Ollama at {url}")
+    else:
+        pytest.skip("Required Ollama model qwen3:8b is not installed.")
 
 @pytest.mark.asyncio
 async def test_real_llm_verification_flow(check_ollama):
@@ -76,16 +70,8 @@ Return only the marketing message."""
 
         state = MarketingAgentState(user_input=prompt_text)
 
-        # 1. Execute the real or mocked content generation node
-        if model_name == "mocked-model":
-            class MockChain:
-                async def ainvoke(self, kwargs):
-                    return f"Generated marketing message featuring the ZX-8472. Verification token: {unique_token}"
-            
-            with patch("app.agents.nodes.content.build_text_chain", return_value=MockChain()):
-                result_content = await generate_content(state)
-        else:
-            result_content = await generate_content(state)
+        # 1. Execute the real content generation node
+        result_content = await generate_content(state)
         
         # Check that generation didn't fail
         assert result_content.get("status") != "failed", f"Content generation failed: {result_content.get('error_message')}"

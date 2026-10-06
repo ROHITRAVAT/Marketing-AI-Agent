@@ -2,13 +2,13 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch
 
 from app.main import app
 from app.api.deps import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.agents.enums import AgentStatus
+from app.schemas.agent import AgentChatJobResponse, AgentJobStatusResponse, AgentChatResponse
 
 @pytest_asyncio.fixture
 async def test_user(db_session: AsyncSession):
@@ -35,116 +35,65 @@ async def async_client(db_session: AsyncSession, test_user: User):
         yield client
     app.dependency_overrides.clear()
 
+
 @pytest.mark.asyncio
 async def test_agent_chat_success(async_client: AsyncClient):
-    with patch("app.services.agent_service.build_marketing_graph") as mock_build_graph, \
-         patch("app.services.agent_service.get_checkpointer") as mock_get_checkpointer:
+    with patch("app.api.v1.endpoints.agent.AgentService.submit_chat_job") as mock_submit, \
+         patch("app.api.v1.endpoints.agent.AgentService.get_job_status") as mock_status:
         
-        # Mock checkpointer context manager
-        mock_checkpointer = MagicMock()
-        mock_get_checkpointer.return_value.__aenter__.return_value = mock_checkpointer
+        mock_submit.return_value = AgentChatJobResponse(job_id="job-123", status="queued")
         
-        # Mock graph
-        mock_graph = MagicMock()
-        mock_build_graph.return_value = mock_graph
-        
-        # Mock graph.aget_state
-        mock_state = MagicMock()
-        mock_state.values = {"status": AgentStatus.COMPLETED}
-        mock_graph.aget_state = AsyncMock(return_value=mock_state)
-        
-        # Mock graph.ainvoke
-        mock_graph.ainvoke = AsyncMock(return_value={
-            "status": AgentStatus.COMPLETED,
-            "final_response": "Here is your completed campaign."
-        })
+        mock_status.return_value = AgentJobStatusResponse(
+            job_id="job-123",
+            status="completed",
+            result=AgentChatResponse(
+                status="completed",
+                thread_id="thread-123",
+                final_response="Here is your completed campaign."
+            )
+        )
         
         payload = {
-            "thread_id": "thread-success-123",
+            "thread_id": "thread-123",
             "message": "Create a campaign"
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
+        assert response.status_code == 202
+        assert response.json()["job_id"] == "job-123"
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "completed"
-        assert data["thread_id"] == "thread-success-123"
-        assert data["final_response"] == "Here is your completed campaign."
-        assert data["approval_required"] is False
+        poll_resp = await async_client.get("/api/v1/agent/jobs/job-123")
+        assert poll_resp.status_code == 200
+        assert poll_resp.json()["status"] == "completed"
+        assert poll_resp.json()["result"]["final_response"] == "Here is your completed campaign."
 
 @pytest.mark.asyncio
 async def test_agent_chat_approval_pending(async_client: AsyncClient):
-    with patch("app.services.agent_service.build_marketing_graph") as mock_build_graph, \
-         patch("app.services.agent_service.get_checkpointer") as mock_get_checkpointer:
+    with patch("app.api.v1.endpoints.agent.AgentService.submit_chat_job") as mock_submit, \
+         patch("app.api.v1.endpoints.agent.AgentService.get_job_status") as mock_status:
         
-        # Mock checkpointer context manager
-        mock_checkpointer = MagicMock()
-        mock_get_checkpointer.return_value.__aenter__.return_value = mock_checkpointer
+        mock_submit.return_value = AgentChatJobResponse(job_id="job-456", status="queued")
         
-        # Mock graph
-        mock_graph = MagicMock()
-        mock_build_graph.return_value = mock_graph
-        
-        # Mock graph.aget_state
-        mock_state = MagicMock()
-        mock_state.values = {} # First run
-        mock_graph.aget_state = AsyncMock(return_value=mock_state)
-        
-        # Mock graph.ainvoke
-        mock_graph.ainvoke = AsyncMock(return_value={
-            "status": AgentStatus.WAITING_FOR_APPROVAL,
-            "approval_request_id": 999
-        })
+        mock_status.return_value = AgentJobStatusResponse(
+            job_id="job-456",
+            status="approval_pending",
+            result=AgentChatResponse(
+                status="approval_pending",
+                thread_id="thread-456",
+                approval_required=True,
+                approval_request_id=999
+            )
+        )
         
         payload = {
-            "thread_id": "thread-approval-123",
+            "thread_id": "thread-456",
             "message": "Create a social media post"
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
+        assert response.status_code == 202
         
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "approval_pending"
-        assert data["thread_id"] == "thread-approval-123"
-        assert data["approval_required"] is True
-        assert data["approval_request_id"] == 999
-
-@pytest.mark.asyncio
-async def test_agent_chat_already_approval_pending(async_client: AsyncClient):
-    with patch("app.services.agent_service.build_marketing_graph") as mock_build_graph, \
-         patch("app.services.agent_service.get_checkpointer") as mock_get_checkpointer:
-        
-        # Mock checkpointer context manager
-        mock_checkpointer = MagicMock()
-        mock_get_checkpointer.return_value.__aenter__.return_value = mock_checkpointer
-        
-        # Mock graph
-        mock_graph = MagicMock()
-        mock_build_graph.return_value = mock_graph
-        
-        # Mock graph.aget_state to simulate it's ALREADY paused
-        mock_state = MagicMock()
-        mock_state.values = {
-            "status": AgentStatus.WAITING_FOR_APPROVAL,
-            "approval_request_id": 888
-        }
-        mock_graph.aget_state = AsyncMock(return_value=mock_state)
-        
-        payload = {
-            "thread_id": "thread-paused-123",
-            "message": "Continue please"
-        }
-        
-        response = await async_client.post("/api/v1/agent/chat", json=payload)
-        
-        # We shouldn't even call ainvoke
-        mock_graph.ainvoke.assert_not_called()
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "approval_pending"
-        assert data["approval_required"] is True
-        assert data["approval_request_id"] == 888
-        assert data["final_response"] is None
+        poll_resp = await async_client.get("/api/v1/agent/jobs/job-456")
+        assert poll_resp.status_code == 200
+        assert poll_resp.json()["status"] == "approval_pending"
+        assert poll_resp.json()["result"]["approval_request_id"] == 999

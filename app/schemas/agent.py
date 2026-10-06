@@ -24,3 +24,13 @@ class AgentChatResponse(BaseModel):
     approval_required: bool = Field(False, description="Whether human approval is required to continue")
     approval_request_id: Optional[int] = Field(None, description="The ID of the approval request if approval is required")
     error: Optional[str] = Field(None, description="Error message if the workflow failed")
+
+class AgentChatJobResponse(BaseModel):
+    job_id: str = Field(..., description="Unique identifier for the background job")
+    status: str = Field(..., description="Status of the job (e.g., 'queued')")
+
+class AgentJobStatusResponse(BaseModel):
+    job_id: str = Field(..., description="Unique identifier for the background job")
+    status: str = Field(..., description="Status of the job (e.g., 'queued', 'running', 'completed', 'failed', 'approval_pending')")
+    result: Optional[AgentChatResponse] = Field(None, description="The result of the job if it completed successfully or requires approval")
+    error: Optional[str] = Field(None, description="Error message if the job failed")

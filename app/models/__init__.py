@@ -12,6 +12,7 @@ from .approval import ApprovalRequest
 from .password_reset_token import PasswordResetToken
 from .integration import IntegrationConnection
 from .social_analytics import SocialAnalytics
+from .agent_job import AgentJob
 
 # For Alembic to detect these models, make sure they are imported above
 # and exposed in the __all__ list below if you use wildcard imports elsewhere.
@@ -27,4 +28,5 @@ __all__ = [
     "PasswordResetToken",
     "IntegrationConnection",
     "SocialAnalytics",
+    "AgentJob",
 ]
