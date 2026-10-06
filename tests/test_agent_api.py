@@ -38,19 +38,11 @@ async def async_client(db_session: AsyncSession, test_user: User):
 
 @pytest.mark.asyncio
 async def test_agent_chat_success(async_client: AsyncClient):
-    with patch("app.api.v1.endpoints.agent.AgentService.submit_chat_job") as mock_submit, \
-         patch("app.api.v1.endpoints.agent.AgentService.get_job_status") as mock_status:
-        
-        mock_submit.return_value = AgentChatJobResponse(job_id="job-123", status="queued")
-        
-        mock_status.return_value = AgentJobStatusResponse(
-            job_id="job-123",
+    with patch("app.api.v1.endpoints.agent.AgentService._execute_chat") as mock_execute:
+        mock_execute.return_value = AgentChatResponse(
             status="completed",
-            result=AgentChatResponse(
-                status="completed",
-                thread_id="thread-123",
-                final_response="Here is your completed campaign."
-            )
+            thread_id="thread-123",
+            final_response="Here is your completed campaign."
         )
         
         payload = {
@@ -59,30 +51,18 @@ async def test_agent_chat_success(async_client: AsyncClient):
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
-        assert response.status_code == 202
-        assert response.json()["job_id"] == "job-123"
-        
-        poll_resp = await async_client.get("/api/v1/agent/jobs/job-123")
-        assert poll_resp.status_code == 200
-        assert poll_resp.json()["status"] == "completed"
-        assert poll_resp.json()["result"]["final_response"] == "Here is your completed campaign."
+        assert response.status_code == 200
+        assert response.json()["status"] == "completed"
+        assert response.json()["final_response"] == "Here is your completed campaign."
 
 @pytest.mark.asyncio
 async def test_agent_chat_approval_pending(async_client: AsyncClient):
-    with patch("app.api.v1.endpoints.agent.AgentService.submit_chat_job") as mock_submit, \
-         patch("app.api.v1.endpoints.agent.AgentService.get_job_status") as mock_status:
-        
-        mock_submit.return_value = AgentChatJobResponse(job_id="job-456", status="queued")
-        
-        mock_status.return_value = AgentJobStatusResponse(
-            job_id="job-456",
+    with patch("app.api.v1.endpoints.agent.AgentService._execute_chat") as mock_execute:
+        mock_execute.return_value = AgentChatResponse(
             status="approval_pending",
-            result=AgentChatResponse(
-                status="approval_pending",
-                thread_id="thread-456",
-                approval_required=True,
-                approval_request_id=999
-            )
+            thread_id="thread-456",
+            approval_required=True,
+            approval_request_id=999
         )
         
         payload = {
@@ -91,9 +71,6 @@ async def test_agent_chat_approval_pending(async_client: AsyncClient):
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
-        assert response.status_code == 202
-        
-        poll_resp = await async_client.get("/api/v1/agent/jobs/job-456")
-        assert poll_resp.status_code == 200
-        assert poll_resp.json()["status"] == "approval_pending"
-        assert poll_resp.json()["result"]["approval_request_id"] == 999
+        assert response.status_code == 200
+        assert response.json()["status"] == "approval_pending"
+        assert response.json()["approval_request_id"] == 999

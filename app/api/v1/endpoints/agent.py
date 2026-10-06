@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db_session
 from app.dependencies.auth import get_current_user
 from app.models.user import User
-from app.schemas.agent import AgentChatRequest, AgentChatJobResponse, AgentJobStatusResponse
+from app.schemas.agent import AgentChatRequest, AgentChatResponse, AgentJobStatusResponse
 from app.services.agent_service import AgentService
 from fastapi import HTTPException
 
@@ -12,10 +12,10 @@ router = APIRouter(prefix="/agent", tags=["Agent"])
 
 @router.post(
     "/chat",
-    response_model=AgentChatJobResponse,
-    status_code=status.HTTP_202_ACCEPTED,
+    response_model=AgentChatResponse,
+    status_code=status.HTTP_200_OK,
     summary="Chat with the Marketing Agent",
-    description="Send a message to the AI Marketing Agent. Returns a job ID that can be polled."
+    description="Send a message to the AI Marketing Agent. Executes the workflow synchronously."
 )
 async def chat(
     request: AgentChatRequest,
@@ -23,9 +23,9 @@ async def chat(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Execute the agent workflow for a given chat request in the background.
+    Execute the agent workflow for a given chat request.
     """
-    response = await AgentService.submit_chat_job(db, current_user.id, request)
+    response = await AgentService._execute_chat(db, current_user.id, request)
     return response
 
 @router.get(
