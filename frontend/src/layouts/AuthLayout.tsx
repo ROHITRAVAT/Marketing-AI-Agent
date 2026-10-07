@@ -1,8 +1,15 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export const AuthLayout: React.FC = () => {
+  const { token, user, isLoading } = useAuthStore();
+
+  if (!isLoading && token && user) {
+    return <Navigate to="/" replace />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F8F6] flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-[#18181B]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">

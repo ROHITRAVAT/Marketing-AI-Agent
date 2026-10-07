@@ -18,38 +18,44 @@ import { authService } from '@/services/authService';
 import { useAuthStore } from '@/store/useAuthStore';
 
 export function App() {
-  const { token, user, setUser, setLoading, logout } = useAuthStore();
+  const { token, user, setUser, setLoading } = useAuthStore();
 
   useEffect(() => {
-    if (!token || user) return;
+    if (!token) {
+      setLoading(false);
+      return;
+    }
 
     let isMounted = true;
-    setLoading(true);
+    if (!user) {
+      setLoading(true);
+    }
+
     authService.getProfile()
       .then((profile) => {
-        if (isMounted && useAuthStore.getState().token === token && !useAuthStore.getState().user) {
+        if (isMounted && useAuthStore.getState().token === token) {
           setUser({
             id: profile.user_id,
             email: profile.email,
             username: profile.username,
             full_name: profile.full_name,
-            role: profile.role as 'admin' | 'manager' | 'user',
+            role: (profile.role as 'admin' | 'manager' | 'user') || 'user',
             is_active: true,
             is_verified: true,
           });
         }
       })
       .catch(() => {
-        if (isMounted && useAuthStore.getState().token === token && !useAuthStore.getState().user) logout();
+        // Do not force logout on background profile check; preserve workspace state
       })
       .finally(() => {
-        if (isMounted && useAuthStore.getState().token === token) setLoading(false);
+        if (isMounted) setLoading(false);
       });
 
     return () => {
       isMounted = false;
     };
-  }, [logout, setLoading, setUser, token, user]);
+  }, [token]);
 
   return (
     <Router>

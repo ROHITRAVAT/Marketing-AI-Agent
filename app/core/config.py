@@ -21,7 +21,7 @@ OAUTH_ENCRYPTION_KEY = os.getenv("OAUTH_ENCRYPTION_KEY")
 
 # Access token lifetime in minutes
 ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
+    os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080")
 )
 
 # Password reset token lifetime in minutes.

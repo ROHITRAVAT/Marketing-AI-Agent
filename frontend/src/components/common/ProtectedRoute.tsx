@@ -7,25 +7,23 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user, isLoading, token } = useAuthStore();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#F8F8F6] flex items-center justify-center text-sm text-[#71717A]">
-        Loading your workspace...
+      <div className="min-h-screen bg-[#F8F8F6] flex flex-col items-center justify-center text-sm text-[#71717A] gap-3">
+        <div className="w-8 h-8 border-2 border-stone-300 border-t-stone-900 rounded-full animate-spin" />
+        <span className="font-mono text-xs">Restoring workspace session...</span>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  // Only redirect if there is genuinely no authentication session
+  if (!isAuthenticated && !token && !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
