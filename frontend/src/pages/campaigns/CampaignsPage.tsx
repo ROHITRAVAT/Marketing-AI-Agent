@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Plus,
   Search,
@@ -8,17 +9,22 @@ import {
   Play,
   Pause,
   X,
+  Sparkles,
+  Calendar,
 } from 'lucide-react';
 import type { Campaign } from '@/types';
 import { campaignService } from '@/services/campaignService';
 import type { CampaignFormData } from '@/store/useCampaignStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useChatStore } from '@/store/useChatStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 const AVAILABLE_CHANNELS = ['LinkedIn', 'Twitter/X', 'Instagram', 'Facebook'];
 
 export const CampaignsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { sendMessage } = useChatStore();
   const user = useAuthStore((state) => state.user);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -35,7 +41,6 @@ export const CampaignsPage: React.FC = () => {
     description: '',
     status: 'active',
     target_audience: '',
-    budget: 1000,
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
     channels: ['LinkedIn'],
@@ -70,7 +75,6 @@ export const CampaignsPage: React.FC = () => {
       description: '',
       status: 'active',
       target_audience: '',
-      budget: 2000,
       start_date: new Date().toISOString().split('T')[0],
       end_date: '',
       channels: ['LinkedIn'],
@@ -250,30 +254,51 @@ export const CampaignsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3 pt-3 text-xs border-t border-[#F2F2ED]">
               <div>
                 <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Target Audience:</span>
-                <span className="text-[#18181B] font-semibold truncate block">{c.target_audience || 'General'}</span>
+                <span className="text-[#18181B] font-semibold truncate block">{c.target_audience || 'General Marketing'}</span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Budget Allocated:</span>
-                <span className="text-[#18181B] font-semibold">${c.budget ? c.budget.toLocaleString() : '0'}</span>
+                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">AI Content Sprint:</span>
+                <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                  Autonomous Ready
+                </span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Schedule:</span>
-                <span className="text-[#52525B] font-medium">{c.start_date || 'Ongoing'}</span>
+                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Timeline:</span>
+                <span className="text-[#52525B] font-medium flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-[#A1A1AA]" />
+                  {c.start_date ? new Date(c.start_date).toLocaleDateString() : 'Ongoing'}
+                </span>
               </div>
               <div>
-                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Audience Reach:</span>
-                <span className="text-[#71717A] font-medium">Not available</span>
+                <span className="text-[10px] font-mono uppercase text-[#A1A1AA] block mb-0.5">Strategy Status:</span>
+                <span className="text-[#18181B] font-medium font-mono text-[11px] capitalize">{c.status} Mode</span>
               </div>
             </div>
 
-            {/* Channels & Footer */}
-            <div className="flex items-center justify-between pt-3 border-t border-[#F2F2ED] text-xs">
+            {/* Channels & Actions Footer */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#F2F2ED] text-xs">
               <div className="flex flex-wrap gap-1.5">
-                <span className="px-2 py-0.5 rounded bg-[#F3F3EE] text-[#71717A] border border-[#E4E4DC] text-[10px] font-mono uppercase">
-                  Channels unavailable
-                </span>
+                {['LinkedIn', 'Twitter/X'].map((channel) => (
+                  <span
+                    key={channel}
+                    className="px-2 py-0.5 rounded-full bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC] text-[10px] font-mono font-medium"
+                  >
+                    {channel}
+                  </span>
+                ))}
               </div>
-              <span className="text-[11px] font-mono text-[#A1A1AA]">Active Tracking</span>
+
+              <button
+                onClick={() => {
+                  void sendMessage(`Generate high-converting multi-channel marketing content and social copy for campaign "${c.name}" targeting ${c.target_audience || 'our audience'}.`);
+                  navigate('/chat');
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#18181B] hover:bg-[#27272A] text-white rounded-xl text-xs font-semibold transition-all shadow-xs hover:scale-[1.02]"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Draft with Copilot
+              </button>
             </div>
           </div>
         ))}
@@ -319,29 +344,20 @@ export const CampaignsPage: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, target_audience: e.target.value })}
               />
 
-              <div className="grid grid-cols-2 gap-3">
-                <Input
-                  label="Budget ($)"
-                  type="number"
-                  placeholder="3000"
-                  value={formData.budget || ''}
-                  onChange={(e) => setFormData({ ...formData, budget: Number(e.target.value) })}
-                />
-                <div className="space-y-1.5">
-                  <label className="block text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl py-2.5 px-3 text-xs sm:text-sm text-[#18181B] focus:outline-none transition-all"
-                  >
-                    <option value="active">Active</option>
-                    <option value="paused">Paused</option>
-                    <option value="draft">Draft</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-[#71717A]">
+                  Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                  className="w-full bg-[#F3F3EE] border border-[#E4E4DC] focus:bg-white focus:border-[#18181B] rounded-xl py-2.5 px-3 text-xs sm:text-sm text-[#18181B] focus:outline-none transition-all"
+                >
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="draft">Draft</option>
+                  <option value="completed">Completed</option>
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

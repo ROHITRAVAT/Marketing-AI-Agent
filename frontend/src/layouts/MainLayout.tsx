@@ -158,9 +158,21 @@ export const MainLayout: React.FC = () => {
 
           {/* Right Status & Actions */}
           <div className="flex items-center gap-3">
-            {/* Configured model, without claiming runtime availability. */}
-            <div className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
-              <Sparkles className="w-3 h-3 text-amber-500" />
+            {/* Quick Copilot trigger */}
+            <button
+              onClick={() => navigate('/chat')}
+              className="hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#F3F3EE] hover:bg-[#EAEAE4] text-xs text-[#71717A] border border-[#E4E4DC] transition-all hover:text-[#18181B]"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>Ask AI Copilot...</span>
+              <kbd className="text-[10px] bg-white border border-[#DCDCD4] rounded px-1.5 py-0.5 font-mono text-[#71717A]">
+                Copilot
+              </kbd>
+            </button>
+
+            {/* Configured model indicator */}
+            <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#F3F3EE] text-[#52525B] border border-[#E4E4DC]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Qwen3:8B
             </div>
 

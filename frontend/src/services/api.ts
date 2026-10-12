@@ -15,7 +15,11 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('auth_token');
     if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (typeof config.headers.set === 'function') {
+        config.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -26,13 +30,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Clear token if expired or unauthorized
-      localStorage.removeItem('auth_token');
-      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
-        window.location.href = '/login';
-      }
-    }
     return Promise.reject(error);
   }
 );
