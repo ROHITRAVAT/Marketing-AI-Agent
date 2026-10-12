@@ -34,13 +34,47 @@ export interface ApprovalResponse {
   updated_at: string;
 }
 
+export interface AgentChatJobResponse {
+  job_id: string;
+  status: string;
+}
+
+export interface AgentJobStatusResponse {
+  job_id: string;
+  status: string;
+  result: AgentChatResponse | null;
+  error: string | null;
+}
+
 export const agentService = {
   chat: async (data: AgentChatRequest): Promise<AgentChatResponse> => {
-    const response = await api.post<AgentChatResponse>('/agent/chat', {
+    // 1. Submit the job
+    const submitResponse = await api.post<AgentChatJobResponse>('/agent/chat', {
       ...data,
       mode: data.mode || 'copilot',
     });
-    return response.data;
+    
+    const jobId = submitResponse.data.job_id;
+    
+    // 2. Poll until completed, failed, or approval_pending
+    while (true) {
+      // Wait 2 seconds before polling
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      
+      const statusResponse = await api.get<AgentJobStatusResponse>(`/agent/jobs/${jobId}`);
+      const statusData = statusResponse.data;
+      
+      if (statusData.status === 'completed' || statusData.status === 'approval_pending') {
+        if (statusData.result) {
+          return statusData.result;
+        }
+        throw new Error('Job completed but no result was provided.');
+      } else if (statusData.status === 'failed') {
+        throw new Error(statusData.error || 'Agent job failed');
+      }
+      
+      // If queued or running, continue polling
+    }
   },
 
   approveRequest: async (approvalId: number, reason?: string): Promise<ApprovalResponse> => {

@@ -39,15 +39,19 @@ def get_async_client() -> httpx.AsyncClient:
     return build_async_client()
 
 
+import asyncio
+
 async def close_async_client() -> None:
     """Close the cached Ollama HTTP client and clear the cache.
 
     Intended to be called from the application shutdown lifecycle; also makes
     the next call to :func:`get_async_client` create a fresh client.
     """
-    try:
-        await get_async_client().aclose()
-    except Exception as exc:  # pragma: no cover - defensive cleanup
-        logger.warning("Error while closing Ollama HTTP client: %s", exc)
-    finally:
-        get_async_client.cache_clear()
+    if get_async_client.cache_info().currsize > 0:
+        try:
+            client = get_async_client()
+            await asyncio.wait_for(client.aclose(), timeout=2.0)
+        except Exception as exc:  # pragma: no cover - defensive cleanup
+            logger.warning("Error while closing Ollama HTTP client: %s", exc)
+        finally:
+            get_async_client.cache_clear()

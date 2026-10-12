@@ -11,6 +11,7 @@ class ApprovalResponse(BaseModel):
     id: int
     user_id: int
     thread_id: str
+    job_id: Optional[str] = None
     action_type: str
     platform: Optional[str] = None
     content: dict[str, Any]

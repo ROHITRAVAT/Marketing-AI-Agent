@@ -14,16 +14,22 @@ from app.core.security import hash_password
 from app.models.user import User
 
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
-
+TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_db.sqlite"
 
 @pytest_asyncio.fixture
 async def test_engine():
+    import os
+    import uuid
+    import asyncio
+    from sqlalchemy.pool import NullPool
+
+    db_filename = os.path.abspath(f"./test_db_{uuid.uuid4().hex}.sqlite")
+    test_db_url = f"sqlite+aiosqlite:///{db_filename}"
+
     engine = create_async_engine(
-        TEST_DATABASE_URL,
+        test_db_url,
+        poolclass=NullPool,
         echo=False,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
     )
 
     from sqlalchemy import event
@@ -32,6 +38,8 @@ async def test_engine():
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout=10000")
+        cursor.execute("PRAGMA journal_mode=WAL")
         cursor.close()
 
     from app.models.user import User
@@ -48,9 +56,31 @@ async def test_engine():
     yield engine
     
     # Cleanup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    from app.services.agent_service import _background_tasks
+    while _background_tasks:
+        task = _background_tasks.pop()
+        if not task.done():
+            try:
+                task.cancel()
+                await task
+            except (asyncio.CancelledError, RuntimeError, Exception):
+                pass
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+    except Exception:
+        pass
+
     await engine.dispose()
+
+    for ext in ["", "-wal", "-shm"]:
+        path = f"{db_filename}{ext}"
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
 
 @pytest_asyncio.fixture
@@ -127,12 +157,6 @@ async def seeded_db_session(db_session: AsyncSession):
 def mock_worker_session(test_engine):
     from unittest.mock import patch
     
-    async_session = sessionmaker(
-        test_engine,
-        class_=AsyncSession,
-        expire_on_commit=False,
-    )
-    
     from langgraph.checkpoint.memory import MemorySaver
     from contextlib import asynccontextmanager
     
@@ -142,8 +166,15 @@ def mock_worker_session(test_engine):
     @asynccontextmanager
     async def mock_get_checkpointer():
         yield test_checkpointer
+
+    test_session_maker = sessionmaker(
+        test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
     
-    with patch("app.database.connection.AsyncSessionLocal", new=async_session), \
+    with patch("app.database.connection.AsyncSessionLocal", new=test_session_maker), \
+         patch("app.services.agent_service.AsyncSessionLocal", new=test_session_maker), \
          patch("app.agents.checkpoint.get_checkpointer", new=mock_get_checkpointer), \
          patch("app.services.agent_service.get_checkpointer", new=mock_get_checkpointer), \
          patch("app.services.approval_service.get_checkpointer", new=mock_get_checkpointer):
@@ -284,3 +315,20 @@ def mock_social_platforms():
     with patch("httpx.AsyncClient.post", new=mock_post_side_effect), \
          patch("httpx.AsyncClient.get", new=mock_get_side_effect):
         yield {"get": mock_get, "post": mock_post}
+
+import asyncio
+async def poll_agent_job(client, job_id: str, max_retries=50, sleep_time=0.2):
+    """Helper to poll job status in tests"""
+    for _ in range(max_retries):
+        resp = await client.get(f"/api/v1/agent/jobs/{job_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        if data["status"] in ["completed", "failed", "approval_pending"]:
+            res = dict(data.get("result") or {})
+            res["status"] = data["status"]
+            res["result"] = data.get("result") or {}
+            if data.get("error"):
+                res["error"] = data["error"]
+            return res
+        await asyncio.sleep(sleep_time)
+    raise TimeoutError(f"Job {job_id} did not finish in time. Last status: {data.get('status')}")

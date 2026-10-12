@@ -6,9 +6,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from langgraph.types import Command
 
 from app.models.approval import ApprovalRequest
-from app.agents.enums import ApprovalStatus
+from app.models.agent_job import AgentJob
+from app.agents.enums import ApprovalStatus, AgentStatus
 from app.agents.graph import build_marketing_graph
 from app.agents.checkpoint import get_checkpointer
+from app.schemas.agent import AgentChatResponse
 
 
 class ApprovalService:
@@ -61,7 +63,9 @@ class ApprovalService:
     ) -> Optional[ApprovalRequest]:
         """Approve a request and resume the LangGraph workflow."""
         approval = await ApprovalService.get_approval(db, approval_id, user_id)
-        if not approval or approval.status != ApprovalStatus.PENDING:
+        if not approval:
+            return None
+        if approval.status != ApprovalStatus.PENDING:
             return approval
 
         # Update status
@@ -75,7 +79,50 @@ class ApprovalService:
         result_state = await ApprovalService._resume_workflow(approval.thread_id, {"action": "approve", "reason": reason})
         if result_state:
             setattr(approval, "final_response", result_state.get("final_response"))
-        
+
+        # Find and update originating AgentJob
+        target_job_id = approval.job_id
+        job = None
+        if target_job_id:
+            job = await db.get(AgentJob, target_job_id)
+
+        if not job:
+            job_stmt = (
+                select(AgentJob)
+                .where(
+                    AgentJob.thread_id == approval.thread_id,
+                    AgentJob.user_id == user_id,
+                )
+                .order_by(AgentJob.created_at.desc())
+            )
+            job_res = await db.execute(job_stmt)
+            job = job_res.scalars().first()
+            if job:
+                approval.job_id = job.id
+
+        if job:
+            if result_state and result_state.get("status") == AgentStatus.FAILED:
+                job.status = "failed"
+                job.error = result_state.get("error_message") or "Workflow execution failed"
+            else:
+                job.status = "completed"
+                gen_content = result_state.get("generated_content") if result_state else None
+                gen_body = gen_content.body if hasattr(gen_content, "body") else (gen_content.get("body") if isinstance(gen_content, dict) else None)
+                verification_obj = result_state.get("verification") if result_state else None
+                verification_dict = verification_obj.model_dump() if hasattr(verification_obj, "model_dump") else (verification_obj if isinstance(verification_obj, dict) else None)
+
+                chat_res = AgentChatResponse(
+                    status="completed",
+                    thread_id=approval.thread_id,
+                    final_response=result_state.get("final_response") if result_state else approval.final_response,
+                    generated_content=gen_body,
+                    verification=verification_dict
+                )
+                job.result = chat_res.model_dump()
+
+            await db.commit()
+            await db.refresh(approval)
+
         return approval
 
     @staticmethod
@@ -87,7 +134,9 @@ class ApprovalService:
     ) -> Optional[ApprovalRequest]:
         """Reject a request and terminate the LangGraph workflow."""
         approval = await ApprovalService.get_approval(db, approval_id, user_id)
-        if not approval or approval.status != ApprovalStatus.PENDING:
+        if not approval:
+            return None
+        if approval.status != ApprovalStatus.PENDING:
             return approval
 
         # Update status
@@ -101,6 +150,39 @@ class ApprovalService:
         result_state = await ApprovalService._resume_workflow(approval.thread_id, {"action": "reject", "reason": reason})
         if result_state:
             setattr(approval, "final_response", result_state.get("final_response"))
+
+        # Find and update originating AgentJob
+        target_job_id = approval.job_id
+        job = None
+        if target_job_id:
+            job = await db.get(AgentJob, target_job_id)
+
+        if not job:
+            job_stmt = (
+                select(AgentJob)
+                .where(
+                    AgentJob.thread_id == approval.thread_id,
+                    AgentJob.user_id == user_id,
+                )
+                .order_by(AgentJob.created_at.desc())
+            )
+            job_res = await db.execute(job_stmt)
+            job = job_res.scalars().first()
+            if job:
+                approval.job_id = job.id
+
+        if job:
+            job.status = "failed"
+            job.error = reason or "Approval rejected by user"
+            chat_res = AgentChatResponse(
+                status="failed",
+                thread_id=approval.thread_id,
+                final_response=None,
+                error=reason
+            )
+            job.result = chat_res.model_dump()
+            await db.commit()
+            await db.refresh(approval)
 
         return approval
 

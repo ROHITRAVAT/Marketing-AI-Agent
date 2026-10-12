@@ -26,21 +26,22 @@ async def get_installed_ollama_models(base_url: str):
 
 @pytest.fixture
 async def check_ollama():
-    """Fixture to check Ollama availability and fallback to mock if unavailable."""
+    """Fixture to check Ollama availability and skip if unavailable."""
     url = LANGCHAIN_SETTINGS.base_url
     try:
         async with httpx.AsyncClient(timeout=3.0) as client:
             response = await client.get(url)
             if response.status_code == 200:
                 models = await get_installed_ollama_models(url)
-                if "qwen3:8b" in models:
-                    return "qwen3:8b"
-    except Exception:
-        pass
+                if "qwen2.5:0.5b" not in models:
+                    # Pull a small model for testing
+                    await client.post(f"{url.rstrip('/')}/api/pull", json={"name": "qwen2.5:0.5b"}, timeout=120.0)
+                return "qwen2.5:0.5b"
+            else:
+                pytest.fail(f"Ollama returned status {response.status_code}. Cannot run real LLM verification.")
+    except Exception as e:
+        pytest.fail(f"Ollama is unreachable at {url}: {e}. Real LLM verification requires a running Ollama instance.")
         
-    # Fallback to mock if Ollama is not available
-    return "mocked-model"
-
 @pytest.mark.asyncio
 async def test_real_llm_verification_flow(check_ollama):
     """
@@ -51,8 +52,12 @@ async def test_real_llm_verification_flow(check_ollama):
     
     # We need to ensure the system uses the generative model we found
     new_settings = LangChainSettings(model=model_name)
-    with patch("app.langchain.config.LANGCHAIN_SETTINGS", new_settings), \
+    with patch("app.langchain.llm.LANGCHAIN_SETTINGS", new_settings), \
+         patch("app.langchain.config.LANGCHAIN_SETTINGS", new_settings), \
          patch("app.core.config.OLLAMA_MODEL", model_name):
+         
+        from app.langchain.llm import get_chat_model
+        get_chat_model.cache_clear()
 
         unique_token = "REAL-OLLAMA-VERIFY-92831"
         prompt_text = f"""Create a short marketing message for a fictional product called:
@@ -67,16 +72,8 @@ Return only the marketing message."""
 
         state = MarketingAgentState(user_input=prompt_text)
 
-        # 1. Execute the real or mocked content generation node
-        if model_name == "mocked-model":
-            class MockChain:
-                async def ainvoke(self, kwargs):
-                    return f"Generated marketing message featuring the ZX-8472. Verification token: {unique_token}"
-            
-            with patch("app.agents.nodes.content.build_text_chain", return_value=MockChain()):
-                result_content = await generate_content(state)
-        else:
-            result_content = await generate_content(state)
+        # 1. Execute the real content generation node
+        result_content = await generate_content(state)
         
         # Check that generation didn't fail
         assert result_content.get("status") != "failed", f"Content generation failed: {result_content.get('error_message')}"

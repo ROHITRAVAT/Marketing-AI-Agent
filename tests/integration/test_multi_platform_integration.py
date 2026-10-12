@@ -30,19 +30,27 @@ async def test_multi_platform_isolation(integration_client: AsyncClient, seeded_
         "feedback": "Looks good",
         "issues": []
     })
+    mock_extraction = MagicMock()
+    class MockExtraction:
+        def __init__(self):
+            self.product = "AI Tester"
+            self.target_audience = "All"
+            self.platform = "LinkedIn"
+            self.campaign_goal = "Test"
+    mock_extraction.ainvoke = AsyncMock(return_value=MockExtraction())
     
     with patch("app.agents.nodes.strategy.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.content.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.planning.build_json_chain", return_value=mock_planning_chain), \
          patch("app.agents.nodes.review.build_json_chain", return_value=mock_review_chain), \
          patch("app.agents.nodes.tools.build_social_media_chain", return_value=mock_text_chain), \
+         patch("app.agents.nodes.analyze.build_structured_chain", return_value=mock_extraction), \
          patch("app.agents.nodes.retrieval.retrieve_documents", new_callable=AsyncMock) as mock_retrieve:
         
         
         
         # Start agent
-        chat_resp = await integration_client.post(
-            "/api/v1/agent/chat",
+        chat_resp = await integration_client.post("/api/v1/agent/chat",
             json={
                 "thread_id": "test-multi-platform-thread",
                 "message": "Post this everywhere",
@@ -52,9 +60,10 @@ async def test_multi_platform_isolation(integration_client: AsyncClient, seeded_
                 "campaign_goal": "Brand Awareness"
             }
         )
-        assert chat_resp.status_code == 200
-        
-    # Get pending approval
+        assert chat_resp.status_code == 202
+        job_id = chat_resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)# Get pending approval
     approvals_response = await integration_client.get("/api/v1/approvals/pending")
     approvals_data = approvals_response.json()["items"]
     # Usually one approval per thread
@@ -164,8 +173,7 @@ async def test_multi_platform_isolation(integration_client: AsyncClient, seeded_
         
         
         # Start agent
-        chat_resp = await integration_client.post(
-            "/api/v1/agent/chat",
+        chat_resp = await integration_client.post("/api/v1/agent/chat",
             json={
                 "thread_id": "test-multi-platform-thread",
                 "message": "Post this everywhere",
@@ -175,9 +183,10 @@ async def test_multi_platform_isolation(integration_client: AsyncClient, seeded_
                 "campaign_goal": "Brand Awareness"
             }
         )
-        assert chat_resp.status_code == 200
-        
-    # Get pending approval
+        assert chat_resp.status_code == 202
+        job_id = chat_resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)# Get pending approval
     approvals_response = await integration_client.get("/api/v1/approvals/pending")
     approvals_data = approvals_response.json()["items"]
     # Usually one approval per thread

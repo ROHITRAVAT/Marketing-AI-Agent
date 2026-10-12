@@ -51,11 +51,11 @@ def test_ollama_generate_endpoint_returns_inference_result():
 
     app.dependency_overrides[get_ollama_service] = lambda: FakeOllamaService()
     try:
-        with TestClient(app) as client:
-            response = client.post(
-                "/api/v1/ollama/generate",
-                json={"prompt": "Write a greeting", "model": "llama3.2"},
-            )
+        client = TestClient(app)
+        response = client.post(
+            "/api/v1/ollama/generate",
+            json={"prompt": "Write a greeting", "model": "llama3.2"},
+        )
 
         assert response.status_code == 200
         assert response.json()["response"] == "Hello from Ollama"

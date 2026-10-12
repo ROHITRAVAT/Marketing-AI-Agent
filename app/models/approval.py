@@ -1,11 +1,15 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Integer, String, func, ForeignKey, JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.agent_job import AgentJob
 
 
 class ApprovalStatus(str, Enum):
@@ -38,6 +42,13 @@ class ApprovalRequest(Base):
     thread_id: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+        index=True,
+    )
+
+    job_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey("agent_jobs.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
 
@@ -101,6 +112,11 @@ class ApprovalRequest(Base):
     # Relationships
     user: Mapped["User"] = relationship(
         "User",
+        backref="approval_requests"
+    )
+
+    job: Mapped[Optional["AgentJob"]] = relationship(
+        "AgentJob",
         backref="approval_requests"
     )
 

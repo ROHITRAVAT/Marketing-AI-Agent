@@ -36,9 +36,21 @@ async def async_client(db_session: AsyncSession, test_user: User):
     app.dependency_overrides.clear()
 
 
+from tests.conftest import poll_agent_job
+
+@pytest.fixture
+def mock_db_in_bg_agent(test_user, db_session):
+    from contextlib import asynccontextmanager
+    @asynccontextmanager
+    async def mock_session():
+        yield db_session
+        
+    with patch("app.services.agent_service.AsyncSessionLocal", new=mock_session):
+        yield
+
 @pytest.mark.asyncio
-async def test_agent_chat_success(async_client: AsyncClient):
-    with patch("app.api.v1.endpoints.agent.AgentService._execute_chat") as mock_execute:
+async def test_agent_chat_success(async_client: AsyncClient, mock_db_in_bg_agent):
+    with patch("app.services.agent_service.AgentService._execute_chat") as mock_execute:
         mock_execute.return_value = AgentChatResponse(
             status="completed",
             thread_id="thread-123",
@@ -51,13 +63,17 @@ async def test_agent_chat_success(async_client: AsyncClient):
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
-        assert response.status_code == 200
-        assert response.json()["status"] == "completed"
-        assert response.json()["final_response"] == "Here is your completed campaign."
+        assert response.status_code == 202
+        job_id = response.json()["job_id"]
+        
+        data = await poll_agent_job(async_client, job_id)
+        
+        assert data["status"] == "completed"
+        assert data["result"]["final_response"] == "Here is your completed campaign."
 
 @pytest.mark.asyncio
-async def test_agent_chat_approval_pending(async_client: AsyncClient):
-    with patch("app.api.v1.endpoints.agent.AgentService._execute_chat") as mock_execute:
+async def test_agent_chat_approval_pending(async_client: AsyncClient, mock_db_in_bg_agent):
+    with patch("app.services.agent_service.AgentService._execute_chat") as mock_execute:
         mock_execute.return_value = AgentChatResponse(
             status="approval_pending",
             thread_id="thread-456",
@@ -71,6 +87,10 @@ async def test_agent_chat_approval_pending(async_client: AsyncClient):
         }
         
         response = await async_client.post("/api/v1/agent/chat", json=payload)
-        assert response.status_code == 200
-        assert response.json()["status"] == "approval_pending"
-        assert response.json()["approval_request_id"] == 999
+        assert response.status_code == 202
+        job_id = response.json()["job_id"]
+        
+        data = await poll_agent_job(async_client, job_id)
+        
+        assert data["status"] == "approval_pending"
+        assert data["result"]["approval_request_id"] == 999

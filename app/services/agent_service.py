@@ -10,10 +10,47 @@ from app.models.agent_job import AgentJob
 from app.database.connection import AsyncSessionLocal
 from app.langchain.llm import build_chat_model
 import asyncio
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 logger = logging.getLogger(__name__)
 
+# Strong references to running background tasks
+_background_tasks: set[asyncio.Task] = set()
+
+# Concurrency limit for CPU-bound LLM execution
+_llm_semaphore = None
+
+def _get_llm_semaphore():
+    global _llm_semaphore
+    # if it's bound to a closed loop, recreate it
+    try:
+        if _llm_semaphore is not None:
+            _llm_semaphore._get_loop()
+    except RuntimeError:
+        _llm_semaphore = None
+        
+    if _llm_semaphore is None:
+        _llm_semaphore = asyncio.Semaphore(1)
+    return _llm_semaphore
+
+logger = logging.getLogger(__name__)
+
+
+import re
+
+def _sanitize_error_message(error_str: str) -> str:
+    """Mask tokens, secrets, credentials, passwords, and tracebacks from user-facing error fields."""
+    if not error_str:
+        return "An internal error occurred."
+    
+    if "Traceback" in error_str:
+        error_str = error_str.split("Traceback")[0].strip() or "An internal error occurred."
+
+    # Pattern for sensitive tokens, keys, secrets, passwords
+    pattern = r'(?i)(token[:=\s]+|[a-z0-9_-]*secret[a-z0-9_-]*[:=\s]*|[a-z0-9_-]*key[a-z0-9_-]*[:=\s]*|[a-z0-9_-]*password[a-z0-9_-]*[:=\s]*|bearer\s+)([A-Za-z0-9_\-\.]+)'
+    sanitized = re.sub(pattern, r'\1[REDACTED]', error_str)
+    sanitized = re.sub(r'secret_[A-Za-z0-9_\-]+', '[REDACTED]', sanitized)
+    return sanitized
 
 def _is_casual_message(message: str) -> bool:
     normalized = message.strip().lower().rstrip("!?.")
@@ -33,14 +70,19 @@ class AgentService:
         await db.refresh(job)
         
         # Schedule the background task
-        asyncio.create_task(AgentService._run_chat_job(job.id, user_id, request))
+        task = asyncio.create_task(AgentService._run_chat_job(job.id, user_id, request))
+        _background_tasks.add(task)
+        task.add_done_callback(_background_tasks.discard)
         
         return AgentChatJobResponse(job_id=job.id, status="queued")
 
     @staticmethod
-    async def get_job_status(db: AsyncSession, job_id: str):
+    async def get_job_status(db: AsyncSession, job_id: str, user_id: int):
         from app.schemas.agent import AgentJobStatusResponse, AgentChatResponse
-        stmt = select(AgentJob).where(AgentJob.id == job_id)
+        stmt = select(AgentJob).where(
+            AgentJob.id == job_id,
+            AgentJob.user_id == user_id
+        )
         result = await db.execute(stmt)
         job = result.scalar_one_or_none()
         if not job:
@@ -58,8 +100,20 @@ class AgentService:
         )
 
     @staticmethod
+    async def recover_stale_jobs(db: AsyncSession):
+        stmt = update(AgentJob).where(
+            AgentJob.status.in_(["queued", "running"])
+        ).values(
+            status="failed",
+            error="Job interrupted because the application restarted."
+        )
+        await db.execute(stmt)
+        await db.commit()
+
+    @staticmethod
     async def _run_chat_job(job_id: str, user_id: int, request: AgentChatRequest):
-        async with AsyncSessionLocal() as db:
+        import app.database.connection as db_conn
+        async with db_conn.AsyncSessionLocal() as db:
             stmt = select(AgentJob).where(AgentJob.id == job_id)
             result = await db.execute(stmt)
             job = result.scalar_one_or_none()
@@ -69,20 +123,27 @@ class AgentService:
             await db.commit()
             
             try:
-                response = await AgentService._execute_chat(db, user_id, request)
+                logger.error(f"DEBUG: Acquiring semaphore for job {job_id}")
+                async with _get_llm_semaphore():
+                    logger.error(f"DEBUG: Acquired semaphore for job {job_id}")
+                    response = await AgentService._execute_chat(db, user_id, request, job_id=job_id)
+                    logger.error(f"DEBUG: _execute_chat returned for job {job_id}")
                 job.status = response.status
                 job.result = response.model_dump()
+                logger.error(f"DEBUG: Set job {job_id} status to {response.status}")
             except Exception as e:
                 import traceback
                 traceback.print_exc()
                 logger.exception(f"Error executing agent job {job_id}: {e}")
                 job.status = "failed"
-                job.error = str(e)
+                job.error = _sanitize_error_message(str(e))
             finally:
+                logger.error(f"DEBUG: Committing job {job_id}")
                 await db.commit()
+                logger.error(f"DEBUG: Committed job {job_id}")
 
     @staticmethod
-    async def _execute_chat(db: AsyncSession, user_id: int, request: AgentChatRequest) -> AgentChatResponse:
+    async def _execute_chat(db: AsyncSession, user_id: int, request: AgentChatRequest, job_id: str | None = None) -> AgentChatResponse:
         if request.mode == "copilot" or _is_casual_message(request.message):
             model = build_chat_model()
             response = await model.ainvoke([
@@ -98,7 +159,7 @@ class AgentService:
                 final_response=str(response.content),
             )
 
-        config = {"configurable": {"thread_id": request.thread_id}}
+        config = {"configurable": {"thread_id": request.thread_id, "job_id": job_id}}
         
         async with get_checkpointer() as checkpointer:
             try:
@@ -132,7 +193,8 @@ class AgentService:
                 # Prepare the input
                 input_data = {
                     "user_input": request.message,
-                    "user_id": user_id
+                    "user_id": user_id,
+                    "job_id": job_id,
                 }
                 
                 if request.product:

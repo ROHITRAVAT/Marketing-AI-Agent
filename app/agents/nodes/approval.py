@@ -8,6 +8,7 @@ from app.agents.enums import AgentStatus, ApprovalStatus
 from app.agents.utils.errors import handle_node_error
 import app.database.connection as db_conn
 from app.models.approval import ApprovalRequest
+from app.models.agent_job import AgentJob
 
 
 async def request_human_approval(state: MarketingAgentState, config: dict[str, Any]) -> dict:
@@ -48,8 +49,25 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
         if not thread_id:
             raise ValueError("thread_id not found in config")
 
+        user_id = state.user_id or config.get("configurable", {}).get("user_id") or 1
+        job_id = config.get("configurable", {}).get("job_id") or state.job_id
+
         # Create approval request in the database
         async with db_conn.AsyncSessionLocal() as db:
+            if not job_id and user_id:
+                # Query originating agent job for this thread
+                job_stmt = (
+                    select(AgentJob.id)
+                    .where(
+                        AgentJob.thread_id == thread_id,
+                        AgentJob.user_id == user_id,
+                        AgentJob.status.in_(["queued", "running", "approval_pending"])
+                    )
+                    .order_by(AgentJob.created_at.desc())
+                )
+                job_res = await db.execute(job_stmt)
+                job_id = job_res.scalar_one_or_none()
+
             # Idempotency check
             existing = await db.execute(
                 select(ApprovalRequest).where(
@@ -61,6 +79,9 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
             
             if existing_request:
                 approval_id = existing_request.id
+                if not existing_request.job_id and job_id:
+                    existing_request.job_id = job_id
+                    await db.commit()
             else:
                 # Prepare payload
                 payload = {
@@ -70,8 +91,9 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
                 }
                 
                 new_request = ApprovalRequest(
-                    user_id=state.user_id,
+                    user_id=user_id,
                     thread_id=thread_id,
+                    job_id=job_id,
                     action_type=action_type,
                     platform=platform,
                     content=payload,
@@ -88,6 +110,7 @@ async def request_human_approval(state: MarketingAgentState, config: dict[str, A
             "approval_required": True,
             "approval_request_id": approval_id,
             "approval_status": ApprovalStatus.PENDING,
+            "job_id": job_id,
         }
         
         # Using langgraph 0.3 interrupt mechanism

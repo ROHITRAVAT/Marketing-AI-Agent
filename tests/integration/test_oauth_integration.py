@@ -147,20 +147,28 @@ async def test_concurrent_refresh_uses_lock(seeded_db_session: AsyncSession):
         await asyncio.sleep(0.1)
         return await original_refresh(refresh_token)
 
-    TokenManager.get_provider("linkedin").refresh_token = counting_refresh
+    try:
+        TokenManager.get_provider("linkedin").refresh_token = counting_refresh
 
-    # Fire multiple concurrent requests
-    results = await asyncio.gather(
-        TokenManager.get_valid_access_token(1, "linkedin", seeded_db_session),
-        TokenManager.get_valid_access_token(1, "linkedin", seeded_db_session),
-        TokenManager.get_valid_access_token(1, "linkedin", seeded_db_session),
-    )
+        from app.database.connection import AsyncSessionLocal
+        async def _get_token():
+            async with AsyncSessionLocal() as s:
+                return await TokenManager.get_valid_access_token(1, "linkedin", s)
 
-    # All should return the same refreshed token
-    assert all(r == "refreshed_access_token" for r in results)
-    # Due to the lock, refresh should have been called at most twice
-    # (first caller refreshes, second waits and re-checks, third gets fresh token)
-    assert call_count <= 2
+        # Fire multiple concurrent requests
+        results = await asyncio.gather(
+            _get_token(),
+            _get_token(),
+            _get_token(),
+        )
+
+        # All should return the same refreshed token
+        assert all(r == "refreshed_access_token" for r in results)
+        # Due to the lock, refresh should have been called at most twice
+        # (first caller refreshes, second waits and re-checks, third gets fresh token)
+        assert call_count <= 2
+    finally:
+        TokenManager.get_provider("linkedin").refresh_token = original_refresh
 
 
 # ── Test: Disconnect Removes Connection ──────────────────────────────────────

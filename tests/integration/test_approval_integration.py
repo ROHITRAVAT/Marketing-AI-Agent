@@ -27,17 +27,26 @@ async def test_approval_rejection_halts_graph(integration_client: AsyncClient, s
         "issues": []
     })
 
+    mock_extraction = MagicMock()
+    class MockExtraction:
+        def __init__(self):
+            self.product = "AI Tester"
+            self.target_audience = "All"
+            self.platform = "LinkedIn"
+            self.campaign_goal = "Test"
+    mock_extraction.ainvoke = AsyncMock(return_value=MockExtraction())
+
     with patch("app.agents.nodes.strategy.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.content.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.planning.build_json_chain", return_value=mock_planning_chain), \
          patch("app.agents.nodes.review.build_json_chain", return_value=mock_review_chain), \
+         patch("app.agents.nodes.analyze.build_structured_chain", return_value=mock_extraction), \
          patch("app.agents.nodes.retrieval.retrieve_documents", new_callable=AsyncMock) as mock_retrieve:
         
         mock_retrieve.return_value = {"retrieved_documents": []}
         
         # 1. Send chat request to start the agent
-        chat_response = await integration_client.post(
-            "/api/v1/agent/chat",
+        chat_response = await integration_client.post("/api/v1/agent/chat",
             json={
                 "thread_id": "test-thread-id-approval-123",
                 "message": "Create a Facebook post",
@@ -47,7 +56,10 @@ async def test_approval_rejection_halts_graph(integration_client: AsyncClient, s
                 "campaign_goal": "Launch"
             }
         )
-        assert chat_response.status_code == 200
+        assert chat_response.status_code == 202
+        job_id = chat_response.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)
         print("\n\nCHAT RESPONSE:", chat_response.json(), "\n\n")
         
     approvals_response = await integration_client.get("/api/v1/approvals/pending")
@@ -98,17 +110,26 @@ async def test_thread_id_isolation(integration_client: AsyncClient, seeded_db_se
         "issues": []
     })
 
+    mock_extraction = MagicMock()
+    class MockExtraction:
+        def __init__(self):
+            self.product = "AI Tester"
+            self.target_audience = "All"
+            self.platform = "LinkedIn"
+            self.campaign_goal = "Test"
+    mock_extraction.ainvoke = AsyncMock(return_value=MockExtraction())
+
     with patch("app.agents.nodes.strategy.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.content.build_text_chain", return_value=mock_text_chain), \
          patch("app.agents.nodes.planning.build_json_chain", return_value=mock_planning_chain), \
          patch("app.agents.nodes.review.build_json_chain", return_value=mock_review_chain), \
+         patch("app.agents.nodes.analyze.build_structured_chain", return_value=mock_extraction), \
          patch("app.agents.nodes.retrieval.retrieve_documents", new_callable=AsyncMock) as mock_retrieve:
         
         mock_retrieve.return_value = {"retrieved_documents": []}
         
         # Start Thread 1
-        chat_resp_1 = await integration_client.post(
-            "/api/v1/agent/chat",
+        chat_resp_1 = await integration_client.post("/api/v1/agent/chat",
             json={
                 "thread_id": thread_1_id,
                 "message": "Thread 1 post",
@@ -118,11 +139,11 @@ async def test_thread_id_isolation(integration_client: AsyncClient, seeded_db_se
                 "campaign_goal": "Goal 1"
             }
         )
-        assert chat_resp_1.status_code == 200
-        
-        # Start Thread 2
-        chat_resp_2 = await integration_client.post(
-            "/api/v1/agent/chat",
+        assert chat_resp_1.status_code == 202
+        job_id = chat_resp_1.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)# Start Thread 2
+        chat_resp_2 = await integration_client.post("/api/v1/agent/chat",
             json={
                 "thread_id": thread_2_id,
                 "message": "Thread 2 post",
@@ -132,9 +153,10 @@ async def test_thread_id_isolation(integration_client: AsyncClient, seeded_db_se
                 "campaign_goal": "Goal 2"
             }
         )
-        assert chat_resp_2.status_code == 200
-        
-        # Both should be in waiting_for_approval state
+        assert chat_resp_2.status_code == 202
+        job_id = chat_resp_2.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)# Both should be in waiting_for_approval state
         approvals_response = await integration_client.get("/api/v1/approvals/pending")
         approvals_data = approvals_response.json()["items"]
         assert len(approvals_data) >= 2

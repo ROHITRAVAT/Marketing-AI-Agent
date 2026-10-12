@@ -12,25 +12,50 @@ from app.models.user import User
 from app.core.security import hash_password
 from unittest.mock import patch, AsyncMock
 
-# E2E Test DB URL - Isolated
-E2E_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+import uuid
+from sqlalchemy.pool import NullPool
+from sqlalchemy import event
 
 @pytest_asyncio.fixture
 async def e2e_test_engine():
+    db_filename = os.path.abspath(f"./test_e2e_{uuid.uuid4().hex}.sqlite")
+    test_db_url = f"sqlite+aiosqlite:///{db_filename}"
+
     engine = create_async_engine(
-        E2E_DATABASE_URL,
+        test_db_url,
+        poolclass=NullPool,
         echo=False,
     )
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA busy_timeout=10000")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.close()
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
     yield engine
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+    except Exception:
+        pass
 
     await engine.dispose()
+
+    # Clean up test database files safely
+    for ext in ["", "-wal", "-shm"]:
+        p = f"{db_filename}{ext}"
+        if os.path.exists(p):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
 
 @pytest_asyncio.fixture
 async def e2e_db_session(e2e_test_engine):
@@ -43,7 +68,7 @@ async def e2e_db_session(e2e_test_engine):
     async with async_session() as session:
         yield session
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(autouse=True)
 async def e2e_seeded_user(e2e_db_session: AsyncSession):
     user = User(
         id=1,
@@ -112,33 +137,34 @@ def mock_ollama_service():
 @pytest_asyncio.fixture(autouse=True)
 def mock_social_media():
     """Mock the social media tool executions to prevent actual posting during testing."""
-    with patch("app.agents.graph.execute_tools") as mock_tools:
-        mock_tools.return_value = {"tool_results": [{"tool": "social_media", "status": "success"}]}
+    from app.agents.schemas import ToolResult
+    from app.agents.enums import ToolExecutionStatus
+
+    default_result = {
+        "tool_results": [
+            ToolResult(
+                tool_name="social_media",
+                status=ToolExecutionStatus.SUCCESS,
+                data={"output": "Post ID: e2e_mock_123"},
+            )
+        ]
+    }
+    mock_tools = AsyncMock(return_value=default_result)
+
+    with patch("app.scheduler.processor.execute_tools", new=mock_tools), \
+         patch("app.agents.nodes.tools.execute_tools", new=mock_tools), \
+         patch("app.agents.graph.execute_tools", new=mock_tools):
         yield mock_tools
 
 @pytest_asyncio.fixture(autouse=True)
-def mock_approval_db():
-    """Mock AsyncSessionLocal in approval node to avoid db errors in general e2e tests."""
-    from unittest.mock import MagicMock, AsyncMock
-    from contextlib import asynccontextmanager
-    
-    @asynccontextmanager
-    async def mock_session():
-        mock_db = MagicMock()
-        
-        # db.execute is awaited, so it should return a mock result
-        mock_result = MagicMock()
-        mock_result.scalar_one_or_none.return_value = None
-        
-        async def mock_execute(*args, **kwargs):
-            return mock_result
-            
-        mock_db.execute = mock_execute
-        mock_db.add = MagicMock()
-        mock_db.commit = AsyncMock()
-        mock_db.refresh = AsyncMock()
-        # Mock the new request id
-        yield mock_db
-        
-    with patch("app.database.connection.AsyncSessionLocal", mock_session):
-        yield
+def mock_worker_session(e2e_test_engine):
+    """
+    Bind AsyncSessionLocal to the isolated e2e_test_engine across all e2e tests.
+    """
+    e2e_sessionmaker = sessionmaker(
+        e2e_test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    with patch("app.database.connection.AsyncSessionLocal", new=e2e_sessionmaker):
+        yield e2e_sessionmaker

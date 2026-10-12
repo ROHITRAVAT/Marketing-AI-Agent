@@ -30,11 +30,24 @@ def _mock_chains():
         "approved": True, "score": 9.5, "feedback": "Looks great", "issues": []
     })
 
+    mock_extraction = MagicMock()
+    # Return an object that has product, target_audience, platform, campaign_goal
+    # Wait, the node does: result = await chain.ainvoke(...)
+    # and then result.product etc. So it must be an object (RequestExtraction instance)
+    class MockExtraction:
+        def __init__(self):
+            self.product = "AI Tester"
+            self.target_audience = "Developers"
+            self.platform = "LinkedIn"
+            self.campaign_goal = "Launch"
+    mock_extraction.ainvoke = AsyncMock(return_value=MockExtraction())
+
     return (
         patch("app.agents.nodes.strategy.build_text_chain", return_value=mock_text),
         patch("app.agents.nodes.content.build_text_chain", return_value=mock_text),
         patch("app.agents.nodes.planning.build_json_chain", return_value=mock_json),
         patch("app.agents.nodes.review.build_json_chain", return_value=mock_review),
+        patch("app.agents.nodes.analyze.build_structured_chain", return_value=mock_extraction),
         patch("app.agents.nodes.retrieval.retrieve_documents", new_callable=AsyncMock),
     )
 
@@ -46,8 +59,8 @@ async def test_agent_chat_returns_correct_schema(
     seeded_db_session: AsyncSession,
 ):
     """Verify the response contains all fields required by the frontend."""
-    p1, p2, p3, p4, p5 = _mock_chains()
-    with p1, p2, p3, p4, p5:
+    p1, p2, p3, p4, p5, p6 = _mock_chains()
+    with p1, p2, p3, p4, p5, p6:
         resp = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": str(uuid.uuid4()),
             "message": "Create a LinkedIn post for our new AI product",
@@ -56,9 +69,10 @@ async def test_agent_chat_returns_correct_schema(
             "target_audience": "Developers",
             "campaign_goal": "Launch"
         })
-
-    assert resp.status_code == 200
-    data = resp.json()
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)
 
     # Must have these fields per AgentChatResponse schema
     assert "status" in data
@@ -101,9 +115,9 @@ async def test_thread_id_preserved_across_requests(
 ):
     """Same thread_id across two requests should reuse the same conversation state."""
     thread_id = str(uuid.uuid4())
-    p1, p2, p3, p4, p5 = _mock_chains()
+    p1, p2, p3, p4, p5, p6 = _mock_chains()
 
-    with p1, p2, p3, p4, p5:
+    with p1, p2, p3, p4, p5, p6:
         resp1 = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": thread_id,
             "message": "First message in thread",
@@ -112,19 +126,27 @@ async def test_thread_id_preserved_across_requests(
             "target_audience": "Engineers",
             "campaign_goal": "Awareness"
         })
-    assert resp1.status_code == 200
-    data1 = resp1.json()
+        assert resp1.status_code == 202
+        job_id = resp1.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        job_data = await poll_agent_job(integration_client, job_id)
+        data1 = job_data.get("result") or job_data
+        data1["status"] = job_data["status"]
     assert data1["thread_id"] == thread_id
 
     # Second request with same thread — if the first paused at approval,
     # the second should detect that and return approval_pending.
-    with p1, p2, p3, p4, p5:
+    with p1, p2, p3, p4, p5, p6:
         resp2 = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": thread_id,
             "message": "Follow up in same thread",
         })
-    assert resp2.status_code == 200
-    data2 = resp2.json()
+        assert resp2.status_code == 202
+        job_id = resp2.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        job_data = await poll_agent_job(integration_client, job_id)
+        data2 = job_data.get("result") or job_data
+        data2["status"] = job_data["status"]
     assert data2["thread_id"] == thread_id
 
 
@@ -136,8 +158,8 @@ async def test_different_threads_are_isolated(
     thread_a = str(uuid.uuid4())
     thread_b = str(uuid.uuid4())
 
-    p1, p2, p3, p4, p5 = _mock_chains()
-    with p1, p2, p3, p4, p5:
+    p1, p2, p3, p4, p5, p6 = _mock_chains()
+    with p1, p2, p3, p4, p5, p6:
         resp_a = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": thread_a,
             "message": "Thread A content",
@@ -146,6 +168,12 @@ async def test_different_threads_are_isolated(
             "target_audience": "Aud A",
             "campaign_goal": "Goal A"
         })
+        
+        from tests.conftest import poll_agent_job
+        job_id_a = resp_a.json()["job_id"]
+        data_a = await poll_agent_job(integration_client, job_id_a)
+        assert data_a["thread_id"] == thread_a
+
         resp_b = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": thread_b,
             "message": "Thread B content",
@@ -155,15 +183,16 @@ async def test_different_threads_are_isolated(
             "campaign_goal": "Goal B"
         })
 
-    assert resp_a.json()["thread_id"] == thread_a
-    assert resp_b.json()["thread_id"] == thread_b
+        job_id_b = resp_b.json()["job_id"]
+        data_b = await poll_agent_job(integration_client, job_id_b)
+        assert data_b["thread_id"] == thread_b
 
-    # Both should have generated separate approval requests
-    approvals_resp = await integration_client.get("/api/v1/approvals/pending")
-    assert approvals_resp.status_code == 200
-    threads = [a["thread_id"] for a in approvals_resp.json()["items"]]
-    assert thread_a in threads
-    assert thread_b in threads
+        # Both should have generated separate approval requests
+        approvals_resp = await integration_client.get("/api/v1/approvals/pending")
+        assert approvals_resp.status_code == 200
+        threads = [a["thread_id"] for a in approvals_resp.json()["items"]]
+        assert thread_a in threads
+        assert thread_b in threads
 
 
 # ── Test: Workflow Status ────────────────────────────────────────────────────
@@ -173,8 +202,8 @@ async def test_social_platform_triggers_approval(
     seeded_db_session: AsyncSession,
 ):
     """A social media request should pause at the approval node."""
-    p1, p2, p3, p4, p5 = _mock_chains()
-    with p1, p2, p3, p4, p5:
+    p1, p2, p3, p4, p5, p6 = _mock_chains()
+    with p1, p2, p3, p4, p5, p6:
         resp = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": str(uuid.uuid4()),
             "message": "Write a Facebook post",
@@ -183,12 +212,13 @@ async def test_social_platform_triggers_approval(
             "target_audience": "Marketing teams",
             "campaign_goal": "Engagement"
         })
-
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["status"] == "approval_pending"
-    assert data["approval_required"] is True
-    assert data["approval_request_id"] is not None
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)
+        assert data["status"] == "approval_pending"
+        assert data["approval_required"] is True
+        assert data["approval_request_id"] is not None
 
 
 # ── Test: Error Handling ─────────────────────────────────────────────────────
@@ -204,9 +234,11 @@ async def test_agent_chat_handles_internal_error(
             "message": "This should fail safely",
         })
 
-    assert resp.status_code == 200  # Returns 200 with error in body per existing pattern
-    data = resp.json()
-    assert data["status"] == "failed"
-    assert data.get("error") is not None
-    # Must not expose internal stack traces
-    assert "Traceback" not in (data.get("error") or "")
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)
+        assert data["status"] == "failed"
+        assert data.get("error") is not None
+        # Must not expose internal stack traces
+        assert "Traceback" not in (data.get("error") or "")

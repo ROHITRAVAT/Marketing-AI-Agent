@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import pytest
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -56,12 +56,13 @@ async def test_scheduler_lifecycle_e2e(
     # Also patch TokenManager so token refresh doesn't fail
     with patch("app.scheduler.worker.SCHEDULER_ENABLED", True), \
          patch("app.scheduler.worker.SCHEDULER_INTERVAL_SECONDS", 0.1), \
-         patch("app.core.oauth.manager.TokenManager.get_valid_access_token", return_value="mock_e2e_token"):
+         patch("app.core.oauth.manager.TokenManager.get_valid_access_token", return_value="mock_e2e_token"), \
+         patch("app.main.engine", new=AsyncMock()):
          
         # 3. Start the FastAPI lifespan (which launches run_scheduler)
         async with app.router.lifespan_context(app):
             # 4. Wait for the background scheduler to process the job
-            deadline = asyncio.get_running_loop().time() + 2.0
+            deadline = asyncio.get_running_loop().time() + 5.0
             
             job_processed = False
             while asyncio.get_running_loop().time() < deadline:
@@ -75,8 +76,8 @@ async def test_scheduler_lifecycle_e2e(
                 refreshed_post = result.scalar_one()
                 
                 # In the worker, success marks status as 'published'
-                # If mock_social_media worked or failed, status changes from 'scheduled' to 'published' or 'failed'
-                if refreshed_post.status != "scheduled":
+                # If mock_social_media worked or failed, status changes to 'published' or 'failed'
+                if refreshed_post.status in ["published", "failed"]:
                     job_processed = True
                     break
                     

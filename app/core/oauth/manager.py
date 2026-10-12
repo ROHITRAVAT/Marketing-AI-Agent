@@ -208,11 +208,15 @@ class TokenManager:
         now = datetime.now(timezone.utc)
         
         def _get_conn():
-            return select(IntegrationConnection).where(
-                and_(
-                    IntegrationConnection.user_id == user_id,
-                    IntegrationConnection.provider == provider_name
+            return (
+                select(IntegrationConnection)
+                .where(
+                    and_(
+                        IntegrationConnection.user_id == user_id,
+                        IntegrationConnection.provider == provider_name
+                    )
                 )
+                .execution_options(populate_existing=True)
             )
             
         result = await db.execute(_get_conn())

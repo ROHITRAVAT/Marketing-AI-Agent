@@ -29,19 +29,29 @@ def _mock_chains():
     mock_review.ainvoke = AsyncMock(return_value={
         "approved": True, "score": 9.5, "feedback": "Good", "issues": []
     })
+    mock_extraction = MagicMock()
+    class MockExtraction:
+        def __init__(self):
+            self.product = "AI"
+            self.target_audience = "All"
+            self.platform = "LinkedIn"
+            self.campaign_goal = "Test"
+    mock_extraction.ainvoke = AsyncMock(return_value=MockExtraction())
+
     return (
         patch("app.agents.nodes.strategy.build_text_chain", return_value=mock_text),
         patch("app.agents.nodes.content.build_text_chain", return_value=mock_text),
         patch("app.agents.nodes.planning.build_json_chain", return_value=mock_json),
         patch("app.agents.nodes.review.build_json_chain", return_value=mock_review),
+        patch("app.agents.nodes.analyze.build_structured_chain", return_value=mock_extraction),
         patch("app.agents.nodes.retrieval.retrieve_documents", new_callable=AsyncMock),
     )
 
 
 async def _start_agent_and_get_approval(client: AsyncClient, platform: str = "LinkedIn"):
     """Helper: Start agent, wait for approval, return approval_id."""
-    p1, p2, p3, p4, p5 = _mock_chains()
-    with p1, p2, p3, p4, p5:
+    p1, p2, p3, p4, p5, p6 = _mock_chains()
+    with p1, p2, p3, p4, p5, p6:
         resp = await client.post("/api/v1/agent/chat", json={
             "thread_id": str(uuid.uuid4()),
             "message": f"Create a {platform} post",
@@ -50,8 +60,10 @@ async def _start_agent_and_get_approval(client: AsyncClient, platform: str = "Li
             "target_audience": "Developers",
             "campaign_goal": "Engagement"
         })
-    assert resp.status_code == 200
-    data = resp.json()
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(client, job_id)
     assert data["status"] == "approval_pending"
 
     approvals = await client.get("/api/v1/approvals/pending")
@@ -88,15 +100,19 @@ async def test_approve_resumes_workflow(
     """Approving a request resumes the graph and executes tools."""
     approval_id = await _start_agent_and_get_approval(integration_client)
 
+    client = integration_client
     with patch("app.core.oauth.manager.TokenManager.get_valid_access_token",
                new_callable=AsyncMock, return_value="mock_token"):
         resp = await integration_client.post(
             f"/api/v1/approvals/{approval_id}/approve",
             json={"reason": "Approved by test"}
         )
-    assert resp.status_code == 200
-
-    # The approval should now be marked APPROVED in the DB
+        assert resp.status_code == 200
+        job_id = resp.json()["job_id"]
+        from tests.conftest import poll_agent_job
+        job_data = await poll_agent_job(integration_client, job_id)
+        data = job_data.get("result") or job_data
+        data["status"] = job_data["status"]
     await seeded_db_session.commit()
     result = await seeded_db_session.execute(
         select(ApprovalRequest).where(ApprovalRequest.id == approval_id)

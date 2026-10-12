@@ -55,6 +55,15 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.error("LangGraph checkpointer setup failed: %s", exc)
 
+    try:
+        from app.services.agent_service import AgentService
+        from app.database.connection import AsyncSessionLocal
+        async with AsyncSessionLocal() as db:
+            await AgentService.recover_stale_jobs(db)
+        logger.info("Recovered stale agent jobs")
+    except Exception as exc:
+        logger.error("Failed to recover stale agent jobs: %s", exc)
+
     # Start the scheduler background task
     scheduler_task = asyncio.create_task(run_scheduler())
 

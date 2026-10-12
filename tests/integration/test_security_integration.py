@@ -121,14 +121,19 @@ async def test_user_isolation_oauth_connections(integration_client, seeded_db_se
 async def test_no_credentials_in_error_responses(integration_client, seeded_db_session: AsyncSession):
     """Ensure error messages never leak sensitive tokens."""
     # Simulate an error that might contain a token
-    with patch("app.api.v1.endpoints.agent.AgentService._execute_chat", side_effect=Exception("Failed with token: secret_xyz")):
+    with patch("app.services.agent_service.AgentService._execute_chat", side_effect=Exception("Failed with token: secret_xyz")):
         resp = await integration_client.post("/api/v1/agent/chat", json={
             "thread_id": "test",
             "message": "test",
         })
+        assert resp.status_code == 202
+        job_id = resp.json()["job_id"]
         
-    assert resp.status_code == 500
-    data = resp.json()
-    assert "secret_xyz" not in data.get("message", "")
-    assert "secret_xyz" not in str(data)
+        from tests.conftest import poll_agent_job
+        data = await poll_agent_job(integration_client, job_id)
+        
+        assert data["status"] == "failed"
+        assert "secret_xyz" not in data.get("error", "")
+        assert "Traceback" not in data.get("error", "")
+    assert "secret_xyz" not in data.get("error", "")
     assert "Traceback" not in data.get("error", "")
