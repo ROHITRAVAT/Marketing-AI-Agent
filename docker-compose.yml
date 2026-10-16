@@ -95,7 +95,7 @@ services:
     ports:
       # Keep Ollama reachable from this host for local verification, without
       # publishing its model-management API to the LAN/public interfaces.
-      - "127.0.0.1:11435:11434"  # Changed host port to 11435 due to native Ollama running on 11434
+      - "127.0.0.1:11430:11434"  # Changed host port to 11430 due to native Ollama running on 11434 and Windows port exclusion on 11435-11534
     environment:
       # Bind inside the container on all interfaces so Ollama is reachable from
       # the host (localhost:11434) AND from other containers (backend) via the
@@ -124,13 +124,13 @@ services:
     #   2. Uncomment the block below.
     #   3. Run `docker compose up -d`.
     #
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: 1
-    #           capabilities: [gpu]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
 
 networks:
   # Single shared Docker network for all services — inter-service DNS by service
