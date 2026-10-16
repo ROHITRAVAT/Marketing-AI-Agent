@@ -17,9 +17,9 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy import event
 
 @pytest_asyncio.fixture
-async def e2e_test_engine():
-    db_filename = os.path.abspath(f"./test_e2e_{uuid.uuid4().hex}.sqlite")
-    test_db_url = f"sqlite+aiosqlite:///{db_filename}"
+async def e2e_test_engine(test_db_dir):
+    db_path = test_db_dir / f"test_e2e_{uuid.uuid4().hex}.sqlite"
+    test_db_url = f"sqlite+aiosqlite:///{db_path.as_posix()}"
 
     engine = create_async_engine(
         test_db_url,
@@ -50,7 +50,7 @@ async def e2e_test_engine():
 
     # Clean up test database files safely
     for ext in ["", "-wal", "-shm"]:
-        p = f"{db_filename}{ext}"
+        p = f"{db_path.as_posix()}{ext}"
         if os.path.exists(p):
             try:
                 os.remove(p)

@@ -1,3 +1,8 @@
+"""
+Manual verification script for slow LLM inference.
+Tests end-to-end asynchronous chat submission (HTTP 202) and polling (GET /api/v1/agent/jobs/{job_id})
+against a running local backend server (http://127.0.0.1:8000).
+"""
 import asyncio
 import time
 import httpx

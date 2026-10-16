@@ -16,24 +16,33 @@ logger = logging.getLogger(__name__)
 
 # Strong references to running background tasks
 _background_tasks: set[asyncio.Task] = set()
+_is_shutting_down: bool = False
+
+def _on_background_task_done(task: asyncio.Task) -> None:
+    """Callback invoked when a background task completes; ensures exceptions are observed."""
+    _background_tasks.discard(task)
+    if not task.cancelled():
+        exc = task.exception()
+        if exc:
+            logger.error("Background agent task failed with unhandled exception: %s", exc, exc_info=exc)
 
 # Concurrency limit for CPU-bound LLM execution
-_llm_semaphore = None
+_llm_semaphore: asyncio.Semaphore | None = None
 
-def _get_llm_semaphore():
+def _get_llm_semaphore() -> asyncio.Semaphore:
     global _llm_semaphore
-    # if it's bound to a closed loop, recreate it
     try:
         if _llm_semaphore is not None:
-            _llm_semaphore._get_loop()
+            loop = asyncio.get_running_loop()
+            if getattr(_llm_semaphore, "_loop", None) not in (None, loop):
+                _llm_semaphore = None
     except RuntimeError:
         _llm_semaphore = None
         
     if _llm_semaphore is None:
-        _llm_semaphore = asyncio.Semaphore(1)
+        from app.core.config import OLLAMA_CONCURRENCY_LIMIT
+        _llm_semaphore = asyncio.Semaphore(OLLAMA_CONCURRENCY_LIMIT)
     return _llm_semaphore
-
-logger = logging.getLogger(__name__)
 
 
 import re
@@ -59,6 +68,11 @@ def _is_casual_message(message: str) -> bool:
 class AgentService:
     @staticmethod
     async def submit_chat_job(db: AsyncSession, user_id: int, request: AgentChatRequest) -> dict:
+        global _is_shutting_down
+        if _is_shutting_down:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=503, detail="Server is shutting down; new chat jobs are not accepted.")
+
         from app.schemas.agent import AgentChatJobResponse
         job = AgentJob(
             user_id=user_id,
@@ -69,16 +83,17 @@ class AgentService:
         await db.commit()
         await db.refresh(job)
         
-        # Schedule the background task
+        # Schedule the background task and retain strong reference
         task = asyncio.create_task(AgentService._run_chat_job(job.id, user_id, request))
         _background_tasks.add(task)
-        task.add_done_callback(_background_tasks.discard)
+        task.add_done_callback(_on_background_task_done)
         
         return AgentChatJobResponse(job_id=job.id, status="queued")
 
     @staticmethod
     async def get_job_status(db: AsyncSession, job_id: str, user_id: int):
         from app.schemas.agent import AgentJobStatusResponse, AgentChatResponse
+        # Enforce job ownership in database query
         stmt = select(AgentJob).where(
             AgentJob.id == job_id,
             AgentJob.user_id == user_id
@@ -101,6 +116,12 @@ class AgentService:
 
     @staticmethod
     async def recover_stale_jobs(db: AsyncSession):
+        """
+        Recover stale jobs left in 'queued' or 'running' status when the application restarts.
+        NOTE: The current job runner executes in-process using asyncio background tasks.
+        It is not a durable distributed queue and does not guarantee job execution across restarts.
+        Any in-flight or queued jobs from previous processes are safely marked as failed.
+        """
         stmt = update(AgentJob).where(
             AgentJob.status.in_(["queued", "running"])
         ).values(
@@ -109,6 +130,28 @@ class AgentService:
         )
         await db.execute(stmt)
         await db.commit()
+
+    @staticmethod
+    async def shutdown_background_tasks(timeout: float = 5.0) -> None:
+        """
+        Gracefully shut down all background agent tasks.
+        Stops accepting new jobs, gives running tasks up to `timeout` seconds to complete,
+        and cancels remaining tasks with explicit cancellation handling.
+        """
+        global _is_shutting_down
+        _is_shutting_down = True
+        if not _background_tasks:
+            return
+
+        logger.info("Gracefully shutting down %d background agent tasks...", len(_background_tasks))
+        tasks = list(_background_tasks)
+        done, pending = await asyncio.wait(tasks, timeout=timeout)
+        if pending:
+            logger.warning("Shutdown timeout (%ss) reached. Cancelling %d remaining tasks...", timeout, len(pending))
+            for task in pending:
+                task.cancel()
+            await asyncio.gather(*pending, return_exceptions=True)
+        logger.info("Background agent tasks shut down successfully.")
 
     @staticmethod
     async def _run_chat_job(job_id: str, user_id: int, request: AgentChatRequest):
@@ -123,24 +166,28 @@ class AgentService:
             await db.commit()
             
             try:
-                logger.error(f"DEBUG: Acquiring semaphore for job {job_id}")
                 async with _get_llm_semaphore():
-                    logger.error(f"DEBUG: Acquired semaphore for job {job_id}")
                     response = await AgentService._execute_chat(db, user_id, request, job_id=job_id)
-                    logger.error(f"DEBUG: _execute_chat returned for job {job_id}")
                 job.status = response.status
                 job.result = response.model_dump()
-                logger.error(f"DEBUG: Set job {job_id} status to {response.status}")
+            except asyncio.CancelledError:
+                logger.warning("Agent job %s was cancelled during execution.", job_id)
+                job.status = "failed"
+                job.error = "Job interrupted by application restart or shutdown."
+                try:
+                    await db.commit()
+                except Exception as commit_err:
+                    logger.error("Failed to commit cancelled status for job %s: %s", job_id, commit_err)
+                raise
             except Exception as e:
-                import traceback
-                traceback.print_exc()
-                logger.exception(f"Error executing agent job {job_id}: {e}")
+                logger.exception("Error executing agent job %s: %s", job_id, e)
                 job.status = "failed"
                 job.error = _sanitize_error_message(str(e))
             finally:
-                logger.error(f"DEBUG: Committing job {job_id}")
-                await db.commit()
-                logger.error(f"DEBUG: Committed job {job_id}")
+                try:
+                    await db.commit()
+                except Exception:
+                    pass
 
     @staticmethod
     async def _execute_chat(db: AsyncSession, user_id: int, request: AgentChatRequest, job_id: str | None = None) -> AgentChatResponse:

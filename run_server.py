@@ -1,3 +1,8 @@
+"""
+Development server launcher for Windows environments.
+Sets WindowsSelectorEventLoopPolicy to prevent ProactorEventLoop incompatibilities
+with asyncpg and starts Uvicorn locally on http://127.0.0.1:8000.
+"""
 import asyncio
 import sys
 import uvicorn

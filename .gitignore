@@ -38,4 +38,9 @@ revert_*.py
 modify_*.py
 unfix_*.py
 test_db.sqlite
+# Generated pytest SQLite databases
+test_db_*.sqlite
+test_e2e_*.sqlite
+*.sqlite-wal
+*.sqlite-shm
 pytest_report*.txt

@@ -93,6 +93,9 @@ OLLAMA_EMBEDDING_MODEL = os.getenv("OLLAMA_EMBEDDING_MODEL", "all-minilm")
 # Timeout (seconds) for Ollama HTTP operations (health checks, model listing).
 OLLAMA_TIMEOUT = float(os.getenv("OLLAMA_TIMEOUT", "30"))
 
+# Concurrency limit for CPU-bound Ollama inference (default: 1)
+OLLAMA_CONCURRENCY_LIMIT = int(os.getenv("OLLAMA_CONCURRENCY_LIMIT", "1"))
+
 # Email / SMTP configuration
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -145,6 +148,12 @@ def validate_configuration():
         raise ValueError(
             "Configuration validation failed:\n"
             "OLLAMA_MODEL must be set to a non-empty value."
+        )
+
+    if OLLAMA_CONCURRENCY_LIMIT < 1:
+        raise ValueError(
+            "Configuration validation failed:\n"
+            "OLLAMA_CONCURRENCY_LIMIT must be an integer >= 1."
         )
 
     is_docker = os.path.exists("/.dockerenv")

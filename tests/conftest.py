@@ -14,17 +14,22 @@ from app.core.security import hash_password
 from app.models.user import User
 
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test_db.sqlite"
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+@pytest.fixture(scope="session")
+def test_db_dir(tmp_path_factory):
+    """Temporary directory for pytest SQLite databases outside the repository root."""
+    return tmp_path_factory.mktemp("test_db")
 
 @pytest_asyncio.fixture
-async def test_engine():
+async def test_engine(test_db_dir):
     import os
     import uuid
     import asyncio
     from sqlalchemy.pool import NullPool
 
-    db_filename = os.path.abspath(f"./test_db_{uuid.uuid4().hex}.sqlite")
-    test_db_url = f"sqlite+aiosqlite:///{db_filename}"
+    db_path = test_db_dir / f"test_db_{uuid.uuid4().hex}.sqlite"
+    test_db_url = f"sqlite+aiosqlite:///{db_path.as_posix()}"
 
     engine = create_async_engine(
         test_db_url,
@@ -75,7 +80,7 @@ async def test_engine():
     await engine.dispose()
 
     for ext in ["", "-wal", "-shm"]:
-        path = f"{db_filename}{ext}"
+        path = f"{db_path.as_posix()}{ext}"
         if os.path.exists(path):
             try:
                 os.remove(path)
@@ -152,6 +157,14 @@ async def seeded_db_session(db_session: AsyncSession):
     yield db_session
 
 
+
+@pytest.fixture(autouse=True)
+def reset_agent_service_state():
+    """Ensure agent service shutdown state is reset before and after each test."""
+    import app.services.agent_service as svc
+    svc._is_shutting_down = False
+    yield
+    svc._is_shutting_down = False
 
 @pytest.fixture(autouse=True)
 def mock_worker_session(test_engine):

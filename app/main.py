@@ -38,6 +38,8 @@ async def lifespan(app: FastAPI):
     """Application lifespan: setup on startup, cleanup on shutdown."""
     setup_logging(LOG_LEVEL)
     logger.info("Starting %s v%s", APP_NAME, APP_VERSION)
+    import app.services.agent_service as agent_svc
+    agent_svc._is_shutting_down = False
     try:
         result = await ensure_qdrant_collections()
         logger.info(
@@ -69,6 +71,13 @@ async def lifespan(app: FastAPI):
 
     yield
     
+    # Gracefully shut down background agent tasks
+    try:
+        from app.services.agent_service import AgentService
+        await AgentService.shutdown_background_tasks(timeout=5.0)
+    except Exception as exc:
+        logger.error("Error shutting down background agent tasks: %s", exc)
+
     # Gracefully stop the scheduler
     await stop_scheduler()
     try:
